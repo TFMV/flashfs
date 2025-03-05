@@ -13,4 +13,22 @@ table Snapshot {
   entries: [FileEntry];
 }
 
+table DiffEntry {
+  path: string;
+  type: byte;  // 0 = added, 1 = modified, 2 = deleted
+  oldSize: long;
+  newSize: long;
+  oldMtime: long;
+  newMtime: long;
+  oldPermissions: uint;
+  newPermissions: uint;
+  oldHash: [ubyte];
+  newHash: [ubyte];
+}
+
+table Diff {
+  entries: [DiffEntry];
+}
+
 root_type Snapshot;
+root_type Diff;

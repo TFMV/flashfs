@@ -32,7 +32,21 @@ For files identified by the Bloom filter, FlashFS performs a detailed comparison
 2. Optionally compares file content hashes for detecting changes even when metadata is unchanged
 3. Identifies files that have been added, modified, or deleted
 
-### 3. Parallel Processing
+### 3. Structured Diff Representation
+
+FlashFS uses a structured schema to represent diffs:
+
+1. Each changed file is represented as a `DiffEntry` with:
+   - Path of the file
+   - Type of change (added, modified, deleted)
+   - Before and after values for size, modification time, permissions, and content hash
+
+2. All entries are collected in a `Diff` object that provides:
+   - Efficient serialization and deserialization
+   - Type-safe access to change information
+   - Structured representation of all changes
+
+### 4. Parallel Processing
 
 To accelerate diff computation for large snapshots, FlashFS can distribute the comparison work across multiple CPU cores:
 
@@ -40,7 +54,7 @@ To accelerate diff computation for large snapshots, FlashFS can distribute the c
 2. Processes each chunk in parallel
 3. Combines the results into a unified diff
 
-### 4. Diff Storage
+### 5. Diff Storage
 
 The computed diff is stored in a compact format:
 
@@ -135,9 +149,64 @@ flashfs diff-info --diff changes.diff --verbose
 
 The diff computation is implemented in the `SnapshotStore` struct with the following key methods:
 
-- `ComputeDiff`: Computes the differences between two snapshots
+- `ComputeDiff`: Computes the differences between two snapshots and returns a structured `Diff` object
 - `StoreDiff`: Stores the computed diff to a file
 - `ApplyDiff`: Applies a diff to a base snapshot to generate a new snapshot
+
+### Diff Schema
+
+FlashFS uses a structured schema for representing diffs:
+
+```flatbuffers
+table DiffEntry {
+  path: string;
+  type: byte;  // 0 = added, 1 = modified, 2 = deleted
+  oldSize: long;
+  newSize: long;
+  oldMtime: long;
+  newMtime: long;
+  oldPermissions: uint;
+  newPermissions: uint;
+  oldHash: [ubyte];
+  newHash: [ubyte];
+}
+
+table Diff {
+  entries: [DiffEntry];
+}
+```
+
+This schema provides a clear, structured representation of changes, with each `DiffEntry` capturing all relevant information about a change:
+
+- For added files (`type = 0`), only the new metadata is relevant
+- For modified files (`type = 1`), both old and new metadata are stored
+- For deleted files (`type = 2`), only the old metadata is relevant
+
+### ComputeDiff Implementation
+
+The `ComputeDiff` function compares two snapshots and produces a structured diff:
+
+1. Deserializes both snapshots
+2. Creates maps of file entries for efficient lookup
+3. Identifies added, modified, and deleted files
+4. Creates `DiffEntry` objects for each change
+5. Assembles all entries into a `Diff` object
+6. Serializes the diff using FlatBuffers
+7. Compresses the serialized data
+
+### ApplyDiff Implementation
+
+The `ApplyDiff` function applies a diff to a base snapshot:
+
+1. Deserializes the base snapshot
+2. Deserializes the diff
+3. Creates a map of base entries
+4. Processes each diff entry:
+   - For added files, creates a new entry
+   - For modified files, updates the existing entry
+   - For deleted files, removes the entry
+5. Builds a new snapshot with the modified entries
+6. Serializes and compresses the new snapshot
 
 The diff system uses the same efficient serialization and compression techniques as the snapshot system, ensuring consistent performance and storage efficiency.
 
@@ -147,5 +216,6 @@ The diff system uses the same efficient serialization and compression techniques
 - **Parallel Processing**: Utilizing multiple CPU cores can dramatically speed up diff computation
 - **Hash Comparison**: Enabling hash comparison provides more accurate results but increases computation time
 - **Path Filtering**: Using path filters can focus the comparison on relevant files, reducing processing time
+- **Structured Diffs**: The structured diff format allows for efficient processing and application of changes
 
 For optimal performance, adjust the parallelism level based on your system's capabilities and use path filters when only specific directories are of interest.
