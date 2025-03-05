@@ -1,5 +1,7 @@
 # FlashFS: High-Performance File System Snapshot Tool
 
+[![Build and Test](https://github.com/TFMV/flashfs/actions/workflows/build.yml/badge.svg)](https://github.com/TFMV/flashfs/actions/workflows/build.yml)
+[![codecov](https://codecov.io/gh/TFMV/flashfs/branch/main/graph/badge.svg)](https://codecov.io/gh/TFMV/flashfs)
 [![Go 1.24](https://img.shields.io/badge/Go-1.24-blue.svg)](https://golang.org/doc/go1.24)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TFMV/flashfs)](https://goreportcard.com/report/github.com/TFMV/flashfs)
 [![Go Reference](https://pkg.go.dev/badge/github.com/TFMV/flashfs.svg)](https://pkg.go.dev/github.com/TFMV/flashfs)
