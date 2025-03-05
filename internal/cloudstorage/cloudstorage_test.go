@@ -274,7 +274,9 @@ func runStorageBenchmark(ctx context.Context, t *testing.T, cs *CloudStorage, lo
 
 		// Clean up
 		_ = os.Remove(tmpFile)
-		_ = cs.Delete(ctx, objectName)
+		if err := cs.Delete(ctx, objectName); err != nil {
+			t.Logf("Warning: Failed to delete object %s: %v", objectName, err)
+		}
 	}
 
 	avgUpload := totalUploadTime / time.Duration(iterations)
@@ -344,7 +346,9 @@ func BenchmarkUploadDownload(b *testing.B) {
 
 		// Clean up
 		_ = os.Remove(tmpFile)
-		_ = storage.Delete(ctx, objectName)
+		if err := storage.Delete(ctx, objectName); err != nil {
+			b.Logf("Warning: Failed to delete object %s: %v", objectName, err)
+		}
 	}
 }
 
@@ -403,6 +407,8 @@ func BenchmarkUploadDownloadCompressed(b *testing.B) {
 
 		// Clean up
 		_ = os.Remove(tmpFile)
-		_ = storage.Delete(ctx, objectName+".zst")
+		if err := storage.Delete(ctx, objectName+".zst"); err != nil {
+			b.Logf("Warning: Failed to delete object %s.zst: %v", objectName, err)
+		}
 	}
 }

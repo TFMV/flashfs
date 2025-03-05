@@ -1,12 +1,12 @@
 package storage
 
 import (
+	cryptorand "crypto/rand"
 	"fmt"
 	"math/rand"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/TFMV/flashfs/internal/serializer"
 	"github.com/TFMV/flashfs/internal/walker"
@@ -58,15 +58,20 @@ func setupTestDirectory(t testing.TB, fileCount int) string {
 
 // createRandomFile creates a file with random content
 func createRandomFile(path string, size int) error {
-	// Create a buffer with random data
+	f, err := os.Create(path)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
 	data := make([]byte, size)
-	_, err := rand.Read(data)
+	_, err = cryptorand.Read(data)
 	if err != nil {
 		return err
 	}
 
-	// Write to file
-	return os.WriteFile(path, data, 0644)
+	_, err = f.Write(data)
+	return err
 }
 
 // modifyDirectory makes random changes to a directory for diff testing
@@ -339,16 +344,10 @@ func RunBenchmarksAndGenerateReport(t *testing.T) string {
 		t.Skip("skipping benchmark report in short mode")
 	}
 
-	// Initialize random seed
-	rand.Seed(time.Now().UnixNano())
-
-	// Create a temporary file to capture benchmark output
-	tmpFile, err := os.CreateTemp("", "flashfs-benchmark-report-*.txt")
-	require.NoError(t, err)
-	defer os.Remove(tmpFile.Name())
-
-	// Run the benchmarks with output redirected to the file
+	// Redirect stdout to capture benchmark output
 	originalStdout := os.Stdout
+	tmpFile, err := os.CreateTemp("", "benchmark-*.txt")
+	require.NoError(t, err)
 	os.Stdout = tmpFile
 
 	// Define benchmarks to run
