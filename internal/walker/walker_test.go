@@ -61,6 +61,8 @@ func TestWalk(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get relative path: %v", err)
 		}
+		// Normalize path separators for cross-platform compatibility
+		relPath = filepath.ToSlash(relPath)
 		expectedEntries[relPath] = true
 	}
 
@@ -69,6 +71,8 @@ func TestWalk(t *testing.T) {
 		if err != nil {
 			t.Fatalf("Failed to get relative path: %v", err)
 		}
+		// Normalize path separators for cross-platform compatibility
+		relPath = filepath.ToSlash(relPath)
 		expectedEntries[relPath] = true
 	}
 
