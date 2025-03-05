@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -204,5 +205,105 @@ func TestWalkErrorHandling(t *testing.T) {
 	_, err = Walk(tempFile.Name())
 	if err == nil {
 		t.Error("Expected error when walking a file instead of a directory, got nil")
+	}
+}
+
+func TestWalkWithContext(t *testing.T) {
+	// Create a temporary directory structure for testing
+	tempDir, err := os.MkdirTemp("", "flashfs-walker-ctx-test-*")
+	if err != nil {
+		t.Fatalf("Failed to create temp dir: %v", err)
+	}
+	defer os.RemoveAll(tempDir)
+
+	// Create test directory structure with many subdirectories to ensure the walk takes some time
+	for i := 0; i < 10; i++ {
+		dir := filepath.Join(tempDir, "dir"+string(rune('a'+i%26)))
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatalf("Failed to create directory %s: %v", dir, err)
+		}
+
+		// Create subdirectories
+		for j := 0; j < 10; j++ {
+			subdir := filepath.Join(dir, "subdir"+string(rune('a'+j%26)))
+			if err := os.MkdirAll(subdir, 0755); err != nil {
+				t.Fatalf("Failed to create directory %s: %v", subdir, err)
+			}
+
+			// Create files in subdirectories
+			for k := 0; k < 10; k++ {
+				file := filepath.Join(subdir, "file"+string(rune('a'+k%26))+".txt")
+				content := []byte("test content " + string(rune('a'+i%26)) + string(rune('a'+j%26)) + string(rune('a'+k%26)))
+				if err := os.WriteFile(file, content, 0644); err != nil {
+					t.Fatalf("Failed to create file %s: %v", file, err)
+				}
+			}
+		}
+	}
+
+	// Test with a canceled context
+	ctx, cancel := context.WithCancel(context.Background())
+
+	// Cancel the context immediately
+	cancel()
+
+	// The walk should return quickly with a context canceled error
+	_, err = WalkWithContext(ctx, tempDir)
+	if err == nil {
+		t.Error("Expected context canceled error, got nil")
+	} else if err != context.Canceled {
+		t.Errorf("Expected context.Canceled error, got %v", err)
+	}
+
+	// Skip the timeout test in short mode
+	if !testing.Short() {
+		// Test with a valid context but create a separate goroutine that will cancel it
+		ctx, cancel = context.WithCancel(context.Background())
+		defer cancel()
+
+		// Use a channel to signal when the walk has started
+		started := make(chan struct{})
+
+		// Start the walk in a goroutine
+		resultCh := make(chan error, 1)
+		go func() {
+			// Signal that we're starting
+			close(started)
+			_, err := WalkWithContext(ctx, tempDir)
+			resultCh <- err
+		}()
+
+		// Wait for the walk to start
+		<-started
+
+		// Sleep a bit to let the walk get going
+		time.Sleep(10 * time.Millisecond)
+
+		// Cancel the context
+		cancel()
+
+		// Wait for the result
+		select {
+		case err := <-resultCh:
+			if err == nil {
+				t.Error("Expected context canceled error, got nil")
+			} else if err != context.Canceled {
+				t.Errorf("Expected context.Canceled error, got %v", err)
+			}
+		case <-time.After(5 * time.Second):
+			t.Error("Timed out waiting for walk to be canceled")
+		}
+	}
+
+	// Test with a valid context
+	ctx = context.Background()
+	entries, err := WalkWithContext(ctx, tempDir)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+
+	// Verify we got some entries
+	if len(entries) == 0 {
+		t.Error("Expected entries, got none")
 	}
 }

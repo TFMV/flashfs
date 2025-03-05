@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"context"
+
 	"github.com/spf13/cobra"
 )
 
@@ -14,5 +16,12 @@ It efficiently scans and records filesystem structure and metadata into FlatBuff
 
 // Execute executes the root command.
 func Execute() error {
+	return RootCmd.Execute()
+}
+
+// ExecuteWithContext executes the root command with the given context.
+func ExecuteWithContext(ctx context.Context) error {
+	// Set the context for the command
+	RootCmd.SetContext(ctx)
 	return RootCmd.Execute()
 }

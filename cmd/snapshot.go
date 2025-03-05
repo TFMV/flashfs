@@ -14,6 +14,7 @@ var snapshotCmd = &cobra.Command{
 	Use:   "snapshot",
 	Short: "Take a full snapshot of the filesystem",
 	RunE: func(cmd *cobra.Command, args []string) error {
+		ctx := cmd.Context()
 		path, _ := cmd.Flags().GetString("path")
 		output, _ := cmd.Flags().GetString("output")
 		if path == "" || output == "" {
@@ -21,14 +22,36 @@ var snapshotCmd = &cobra.Command{
 		}
 
 		fmt.Printf("Starting snapshot of %s\n", path)
-		entries, err := walker.Walk(path)
+
+		// Check if context is canceled
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		entries, err := walker.WalkWithContext(ctx, path)
 		if err != nil {
 			return err
+		}
+
+		// Check if context is canceled
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
 		}
 
 		fbData, err := serializer.SerializeSnapshot(entries)
 		if err != nil {
 			return err
+		}
+
+		// Check if context is canceled
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
 		}
 
 		// Create a snapshot store
@@ -42,6 +65,13 @@ var snapshotCmd = &cobra.Command{
 		snapshotName := filepath.Base(output)
 		if ext := filepath.Ext(snapshotName); ext != "" {
 			snapshotName = snapshotName[:len(snapshotName)-len(ext)]
+		}
+
+		// Check if context is canceled
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
 		}
 
 		if err := store.WriteSnapshot(snapshotName, fbData); err != nil {
