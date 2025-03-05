@@ -199,7 +199,7 @@ func (s *SnapshotStore) ComputeDiff(oldName, newName string) ([]byte, error) {
 
 	// Build diff
 	builder := flatbuffers.NewBuilder(1024)
-	fileEntryOffsets := make([]flatbuffers.UOffsetT, 0)
+	diffEntryOffsets := make([]flatbuffers.UOffsetT, 0)
 
 	// Find added or modified entries
 	for i := 0; i < newSnapshot.EntriesLength(); i++ {
@@ -214,52 +214,94 @@ func (s *SnapshotStore) ComputeDiff(oldName, newName string) ([]byte, error) {
 		// If entry doesn't exist or has changed, add to diff
 		if !exists || entriesDiffer(&newEntry, oldEntry) {
 			pathOffset := builder.CreateString(path)
-			var hashOffset flatbuffers.UOffsetT
-			hashBytes := newEntry.HashBytes()
-			if len(hashBytes) > 0 {
-				hashOffset = builder.CreateByteVector(hashBytes)
+
+			var oldHashOffset, newHashOffset flatbuffers.UOffsetT
+
+			// Create hash vectors
+			newHashBytes := newEntry.HashBytes()
+			if len(newHashBytes) > 0 {
+				newHashOffset = builder.CreateByteVector(newHashBytes)
 			}
 
-			flashfs.FileEntryStart(builder)
-			flashfs.FileEntryAddPath(builder, pathOffset)
-			flashfs.FileEntryAddSize(builder, newEntry.Size())
-			flashfs.FileEntryAddMtime(builder, newEntry.Mtime())
-			flashfs.FileEntryAddIsDir(builder, newEntry.IsDir())
-			flashfs.FileEntryAddPermissions(builder, newEntry.Permissions())
-			if len(hashBytes) > 0 {
-				flashfs.FileEntryAddHash(builder, hashOffset)
+			if exists {
+				// Modified file
+				oldHashBytes := oldEntry.HashBytes()
+				if len(oldHashBytes) > 0 {
+					oldHashOffset = builder.CreateByteVector(oldHashBytes)
+				}
+
+				// Start building a DiffEntry for modified file
+				flashfs.DiffEntryStart(builder)
+				flashfs.DiffEntryAddPath(builder, pathOffset)
+				flashfs.DiffEntryAddType(builder, 1) // 1 = modified
+				flashfs.DiffEntryAddOldSize(builder, oldEntry.Size())
+				flashfs.DiffEntryAddNewSize(builder, newEntry.Size())
+				flashfs.DiffEntryAddOldMtime(builder, oldEntry.Mtime())
+				flashfs.DiffEntryAddNewMtime(builder, newEntry.Mtime())
+				flashfs.DiffEntryAddOldPermissions(builder, oldEntry.Permissions())
+				flashfs.DiffEntryAddNewPermissions(builder, newEntry.Permissions())
+				if len(oldHashBytes) > 0 {
+					flashfs.DiffEntryAddOldHash(builder, oldHashOffset)
+				}
+				if len(newHashBytes) > 0 {
+					flashfs.DiffEntryAddNewHash(builder, newHashOffset)
+				}
+			} else {
+				// Added file
+				// Start building a DiffEntry for added file
+				flashfs.DiffEntryStart(builder)
+				flashfs.DiffEntryAddPath(builder, pathOffset)
+				flashfs.DiffEntryAddType(builder, 0) // 0 = added
+				flashfs.DiffEntryAddNewSize(builder, newEntry.Size())
+				flashfs.DiffEntryAddNewMtime(builder, newEntry.Mtime())
+				flashfs.DiffEntryAddNewPermissions(builder, newEntry.Permissions())
+				if len(newHashBytes) > 0 {
+					flashfs.DiffEntryAddNewHash(builder, newHashOffset)
+				}
 			}
-			fileEntryOffsets = append(fileEntryOffsets, flashfs.FileEntryEnd(builder))
+
+			diffEntryOffsets = append(diffEntryOffsets, flashfs.DiffEntryEnd(builder))
 		}
 
 		// Remove from old entries map to track deletions
 		delete(oldEntries, path)
 	}
 
-	// Add deleted entries (marked with size -1)
-	for path := range oldEntries {
+	// Add deleted entries
+	for path, oldEntry := range oldEntries {
 		pathOffset := builder.CreateString(path)
 
-		flashfs.FileEntryStart(builder)
-		flashfs.FileEntryAddPath(builder, pathOffset)
-		flashfs.FileEntryAddSize(builder, -1) // Mark as deleted
-		flashfs.FileEntryAddMtime(builder, time.Now().Unix())
-		flashfs.FileEntryAddIsDir(builder, false)
-		flashfs.FileEntryAddPermissions(builder, 0)
-		fileEntryOffsets = append(fileEntryOffsets, flashfs.FileEntryEnd(builder))
+		var oldHashOffset flatbuffers.UOffsetT
+		oldHashBytes := oldEntry.HashBytes()
+		if len(oldHashBytes) > 0 {
+			oldHashOffset = builder.CreateByteVector(oldHashBytes)
+		}
+
+		// Start building a DiffEntry for deleted file
+		flashfs.DiffEntryStart(builder)
+		flashfs.DiffEntryAddPath(builder, pathOffset)
+		flashfs.DiffEntryAddType(builder, 2) // 2 = deleted
+		flashfs.DiffEntryAddOldSize(builder, oldEntry.Size())
+		flashfs.DiffEntryAddOldMtime(builder, oldEntry.Mtime())
+		flashfs.DiffEntryAddOldPermissions(builder, oldEntry.Permissions())
+		if len(oldHashBytes) > 0 {
+			flashfs.DiffEntryAddOldHash(builder, oldHashOffset)
+		}
+
+		diffEntryOffsets = append(diffEntryOffsets, flashfs.DiffEntryEnd(builder))
 	}
 
-	// Create vector of file entries
-	flashfs.SnapshotStartEntriesVector(builder, len(fileEntryOffsets))
-	for i := len(fileEntryOffsets) - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(fileEntryOffsets[i])
+	// Create vector of diff entries
+	flashfs.DiffStartEntriesVector(builder, len(diffEntryOffsets))
+	for i := len(diffEntryOffsets) - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(diffEntryOffsets[i])
 	}
-	entriesVector := builder.EndVector(len(fileEntryOffsets))
+	entriesVector := builder.EndVector(len(diffEntryOffsets))
 
-	flashfs.SnapshotStart(builder)
-	flashfs.SnapshotAddEntries(builder, entriesVector)
-	snapshot := flashfs.SnapshotEnd(builder)
-	builder.Finish(snapshot)
+	flashfs.DiffStart(builder)
+	flashfs.DiffAddEntries(builder, entriesVector)
+	diff := flashfs.DiffEnd(builder)
+	builder.Finish(diff)
 
 	return builder.FinishedBytes(), nil
 }
@@ -300,32 +342,84 @@ func (s *SnapshotStore) ApplyDiff(baseName, diffName string) ([]byte, error) {
 	}
 
 	baseSnapshot := flashfs.GetRootAsSnapshot(baseData, 0)
-	diffSnapshot := flashfs.GetRootAsSnapshot(diffData, 0)
+	diff := flashfs.GetRootAsDiff(diffData, 0)
 
 	// Create a map of base entries
 	baseEntries := make(map[string]*flashfs.FileEntry)
 	for i := 0; i < baseSnapshot.EntriesLength(); i++ {
 		var entry flashfs.FileEntry
 		if baseSnapshot.Entries(&entry, i) {
-			baseEntries[string(entry.Path())] = &entry
+			entryCopy := new(flashfs.FileEntry)
+			*entryCopy = entry
+			baseEntries[string(entry.Path())] = entryCopy
 		}
 	}
 
 	// Apply diff entries
-	for i := 0; i < diffSnapshot.EntriesLength(); i++ {
-		var diffEntry flashfs.FileEntry
-		if !diffSnapshot.Entries(&diffEntry, i) {
+	for i := 0; i < diff.EntriesLength(); i++ {
+		var diffEntry flashfs.DiffEntry
+		if !diff.Entries(&diffEntry, i) {
 			continue
 		}
 
 		path := string(diffEntry.Path())
+		entryType := diffEntry.Type()
 
-		if diffEntry.Size() == -1 {
-			// This is a deletion
+		switch entryType {
+		case 0, 1: // Added or Modified
+			// For both added and modified, we create a new entry with updated data
+			// The difference is that for added entries, we won't have an existing entry
+			isDir := false
+			if entryType == 1 { // Modified - try to get isDir from existing entry
+				if existingEntry, ok := baseEntries[path]; ok {
+					isDir = existingEntry.IsDir()
+				}
+			}
+
+			// We need to build a complete new snapshot entry from scratch
+			// to avoid any FlatBuffers memory issues
+			builder := flatbuffers.NewBuilder(0)
+
+			// Create string and vector offsets first
+			pathOffset := builder.CreateString(path)
+
+			// Hash bytes
+			var hashOffset flatbuffers.UOffsetT
+			newHashBytes := diffEntry.NewHashBytes()
+			if len(newHashBytes) > 0 {
+				hashOffset = builder.CreateByteVector(newHashBytes)
+			}
+
+			// Create the FileEntry
+			flashfs.FileEntryStart(builder)
+			flashfs.FileEntryAddPath(builder, pathOffset)
+			flashfs.FileEntryAddSize(builder, diffEntry.NewSize())
+			flashfs.FileEntryAddMtime(builder, diffEntry.NewMtime())
+			flashfs.FileEntryAddIsDir(builder, isDir)
+			flashfs.FileEntryAddPermissions(builder, diffEntry.NewPermissions())
+			if len(newHashBytes) > 0 {
+				flashfs.FileEntryAddHash(builder, hashOffset)
+			}
+
+			// Get the offset of the FileEntry we just created
+			fileEntry := flashfs.FileEntryEnd(builder)
+
+			// Finish the buffer with the FileEntry
+			builder.Finish(fileEntry)
+
+			// Get the finished bytes
+			bytes := builder.FinishedBytes()
+
+			// Create a fresh FileEntry object
+			entry := new(flashfs.FileEntry)
+			entry.Init(bytes, flatbuffers.GetUOffsetT(bytes))
+
+			// Store the entry in our map
+			baseEntries[path] = entry
+
+		case 2: // Deleted
+			// Remove the entry from the map
 			delete(baseEntries, path)
-		} else {
-			// This is an addition or modification
-			baseEntries[path] = &diffEntry
 		}
 	}
 

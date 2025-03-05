@@ -6,42 +6,42 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-type Snapshot struct {
+type Diff struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsSnapshot(buf []byte, offset flatbuffers.UOffsetT) *Snapshot {
+func GetRootAsDiff(buf []byte, offset flatbuffers.UOffsetT) *Diff {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &Snapshot{}
+	x := &Diff{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func FinishSnapshotBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
+func FinishDiffBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
 	builder.Finish(offset)
 }
 
-func GetSizePrefixedRootAsSnapshot(buf []byte, offset flatbuffers.UOffsetT) *Snapshot {
+func GetSizePrefixedRootAsDiff(buf []byte, offset flatbuffers.UOffsetT) *Diff {
 	n := flatbuffers.GetUOffsetT(buf[offset+flatbuffers.SizeUint32:])
-	x := &Snapshot{}
+	x := &Diff{}
 	x.Init(buf, n+offset+flatbuffers.SizeUint32)
 	return x
 }
 
-func FinishSizePrefixedSnapshotBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
+func FinishSizePrefixedDiffBuffer(builder *flatbuffers.Builder, offset flatbuffers.UOffsetT) {
 	builder.FinishSizePrefixed(offset)
 }
 
-func (rcv *Snapshot) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *Diff) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *Snapshot) Table() flatbuffers.Table {
+func (rcv *Diff) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *Snapshot) Entries(obj *FileEntry, j int) bool {
+func (rcv *Diff) Entries(obj *DiffEntry, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
@@ -53,7 +53,7 @@ func (rcv *Snapshot) Entries(obj *FileEntry, j int) bool {
 	return false
 }
 
-func (rcv *Snapshot) EntriesLength() int {
+func (rcv *Diff) EntriesLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
@@ -61,15 +61,15 @@ func (rcv *Snapshot) EntriesLength() int {
 	return 0
 }
 
-func SnapshotStart(builder *flatbuffers.Builder) {
+func DiffStart(builder *flatbuffers.Builder) {
 	builder.StartObject(1)
 }
-func SnapshotAddEntries(builder *flatbuffers.Builder, entries flatbuffers.UOffsetT) {
+func DiffAddEntries(builder *flatbuffers.Builder, entries flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(entries), 0)
 }
-func SnapshotStartEntriesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func DiffStartEntriesVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
-func SnapshotEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func DiffEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }

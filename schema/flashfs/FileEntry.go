@@ -6,55 +6,6 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-type FileEntryT struct {
-	Path string `json:"path"`
-	Size int64 `json:"size"`
-	Mtime int64 `json:"mtime"`
-	IsDir bool `json:"isDir"`
-	Permissions uint32 `json:"permissions"`
-	Hash []byte `json:"hash"`
-}
-
-func (t *FileEntryT) Pack(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	if t == nil {
-		return 0
-	}
-	pathOffset := flatbuffers.UOffsetT(0)
-	if t.Path != "" {
-		pathOffset = builder.CreateString(t.Path)
-	}
-	hashOffset := flatbuffers.UOffsetT(0)
-	if t.Hash != nil {
-		hashOffset = builder.CreateByteString(t.Hash)
-	}
-	FileEntryStart(builder)
-	FileEntryAddPath(builder, pathOffset)
-	FileEntryAddSize(builder, t.Size)
-	FileEntryAddMtime(builder, t.Mtime)
-	FileEntryAddIsDir(builder, t.IsDir)
-	FileEntryAddPermissions(builder, t.Permissions)
-	FileEntryAddHash(builder, hashOffset)
-	return FileEntryEnd(builder)
-}
-
-func (rcv *FileEntry) UnPackTo(t *FileEntryT) {
-	t.Path = string(rcv.Path())
-	t.Size = rcv.Size()
-	t.Mtime = rcv.Mtime()
-	t.IsDir = rcv.IsDir()
-	t.Permissions = rcv.Permissions()
-	t.Hash = rcv.HashBytes()
-}
-
-func (rcv *FileEntry) UnPack() *FileEntryT {
-	if rcv == nil {
-		return nil
-	}
-	t := &FileEntryT{}
-	rcv.UnPackTo(t)
-	return t
-}
-
 type FileEntry struct {
 	_tab flatbuffers.Table
 }

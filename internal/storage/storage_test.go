@@ -220,26 +220,30 @@ func TestDiffOperations(t *testing.T) {
 		require.NoError(t, err)
 
 		// Verify the diff contains the expected changes
-		diffSnapshot := flashfs.GetRootAsSnapshot(diff, 0)
-		assert.Equal(t, 2, diffSnapshot.EntriesLength()) // Modified + Added
+		diffObj := flashfs.GetRootAsDiff(diff, 0)
+		assert.Equal(t, 2, diffObj.EntriesLength()) // Modified + Added
 
 		// Check each entry in the diff
-		var entry flashfs.FileEntry
+		var entry flashfs.DiffEntry
 		foundModified := false
 		foundAdded := false
 
-		for i := 0; i < diffSnapshot.EntriesLength(); i++ {
-			diffSnapshot.Entries(&entry, i)
+		for i := 0; i < diffObj.EntriesLength(); i++ {
+			diffObj.Entries(&entry, i)
 			path := string(entry.Path())
 
 			if path == "/test/file2.txt" {
 				foundModified = true
-				assert.Equal(t, int64(300), entry.Size())
-				assert.Equal(t, int64(3000), entry.Mtime())
+				assert.Equal(t, int8(1), entry.Type())         // 1 = modified
+				assert.Equal(t, int64(200), entry.OldSize())   // Original size
+				assert.Equal(t, int64(300), entry.NewSize())   // New size
+				assert.Equal(t, int64(2000), entry.OldMtime()) // Original mtime
+				assert.Equal(t, int64(3000), entry.NewMtime()) // New mtime
 			} else if path == "/test/file3.txt" {
 				foundAdded = true
-				assert.Equal(t, int64(400), entry.Size())
-				assert.Equal(t, int64(4000), entry.Mtime())
+				assert.Equal(t, int8(0), entry.Type()) // 0 = added
+				assert.Equal(t, int64(400), entry.NewSize())
+				assert.Equal(t, int64(4000), entry.NewMtime())
 			}
 		}
 
