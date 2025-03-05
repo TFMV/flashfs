@@ -1,0 +1,1315 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="Documentation for FlashFS - A high-performance file system snapshot and diff tool">
+      
+      
+        <meta name="author" content="Thomas F McGeehan V">
+      
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../walker/">
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.7">
+    
+    
+      
+        <title>CLI - FlashFS Documentation</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.8608ea7d.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="light-blue">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#command-line-interface" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="FlashFS Documentation" class="md-header__button md-logo" aria-label="FlashFS Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            FlashFS Documentation
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              CLI
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+    
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/TFMV/flashfs" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="FlashFS Documentation" class="md-nav__button md-logo" aria-label="FlashFS Documentation" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    FlashFS Documentation
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/TFMV/flashfs" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Components
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            Components
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    CLI
+    
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      Overview
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#command-structure" class="md-nav__link">
+    <span class="md-ellipsis">
+      Command Structure
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#global-flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      Global Flags
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#snapshot-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      Snapshot Command
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Snapshot Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flags" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flags
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#diff-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      Diff Command
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Diff Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flags_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flags
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples_1" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#diff-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      Diff Format
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#apply-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      Apply Command
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Apply Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flags_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flags
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples_2" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#how-apply-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      How Apply Works
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#query-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      Query Command
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Query Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flags_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flags
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples_3" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#expiry-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      Expiry Command
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Expiry Command">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#subcommands" class="md-nav__link">
+    <span class="md-ellipsis">
+      Subcommands
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Subcommands">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#set" class="md-nav__link">
+    <span class="md-ellipsis">
+      Set
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Set">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flags_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flags
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples_4" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#apply" class="md-nav__link">
+    <span class="md-ellipsis">
+      Apply
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Apply">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flags_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flags
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples_5" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#show" class="md-nav__link">
+    <span class="md-ellipsis">
+      Show
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Show">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#flags_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      Flags
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#examples_6" class="md-nav__link">
+    <span class="md-ellipsis">
+      Examples
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#implementation-details" class="md-nav__link">
+    <span class="md-ellipsis">
+      Implementation Details
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Implementation Details">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#command-registration" class="md-nav__link">
+    <span class="md-ellipsis">
+      Command Registration
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#command-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      Command Execution
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#error-handling" class="md-nav__link">
+    <span class="md-ellipsis">
+      Error Handling
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#advanced-usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      Advanced Usage
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Advanced Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#scripting" class="md-nav__link">
+    <span class="md-ellipsis">
+      Scripting
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#piping-output" class="md-nav__link">
+    <span class="md-ellipsis">
+      Piping Output
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#integration-with-other-tools" class="md-nav__link">
+    <span class="md-ellipsis">
+      Integration with Other Tools
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../walker/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Walker
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../serializer/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Serializer
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../schema/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Schema
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../storage/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Storage
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  <span class="md-ellipsis">
+    Features
+    
+  </span>
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            Features
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../diff/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Diff Computation
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../expiry-policy/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Expiry Policy
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="command-line-interface">Command Line Interface</h1>
+<p>FlashFS provides a comprehensive command-line interface (CLI) for interacting with snapshots, diffs, and expiry policies. The CLI is built using <a href="https://github.com/spf13/cobra">Cobra</a>, a powerful library for creating modern CLI applications.</p>
+<h2 id="overview">Overview</h2>
+<p>The FlashFS CLI includes commands for:</p>
+<ul>
+<li>Creating and managing snapshots</li>
+<li>Computing and applying diffs between snapshots</li>
+<li>Querying snapshot contents</li>
+<li>Managing snapshot expiry policies</li>
+</ul>
+<h2 id="command-structure">Command Structure</h2>
+<div class="highlight"><pre><span></span><code>flashfs
+├──<span class="w"> </span>snapshot<span class="w"> </span>-<span class="w"> </span>Create<span class="w"> </span>a<span class="w"> </span>snapshot<span class="w"> </span>of<span class="w"> </span>a<span class="w"> </span>directory
+├──<span class="w"> </span>diff<span class="w"> </span>-<span class="w"> </span>Compute<span class="w"> </span>differences<span class="w"> </span>between<span class="w"> </span>snapshots
+├──<span class="w"> </span>apply<span class="w"> </span>-<span class="w"> </span>Apply<span class="w"> </span>a<span class="w"> </span>diff<span class="w"> </span>to<span class="w"> </span>a<span class="w"> </span>snapshot
+├──<span class="w"> </span>query<span class="w"> </span>-<span class="w"> </span>Query<span class="w"> </span>snapshot<span class="w"> </span>contents
+└──<span class="w"> </span>expiry<span class="w"> </span>-<span class="w"> </span>Manage<span class="w"> </span>snapshot<span class="w"> </span>expiry<span class="w"> </span>policies
+<span class="w">    </span>├──<span class="w"> </span><span class="nb">set</span><span class="w"> </span>-<span class="w"> </span>Set<span class="w"> </span>expiry<span class="w"> </span>policy
+<span class="w">    </span>├──<span class="w"> </span>apply<span class="w"> </span>-<span class="w"> </span>Apply<span class="w"> </span>expiry<span class="w"> </span>policy
+<span class="w">    </span>└──<span class="w"> </span>show<span class="w"> </span>-<span class="w"> </span>Show<span class="w"> </span>current<span class="w"> </span>expiry<span class="w"> </span>policy
+</code></pre></div>
+<h2 id="global-flags">Global Flags</h2>
+<p>These flags apply to all commands:</p>
+<div class="highlight"><pre><span></span><code>--help, -h     Show help for a command
+--verbose, -v  Enable verbose output
+</code></pre></div>
+<h2 id="snapshot-command">Snapshot Command</h2>
+<p>Create a snapshot of a directory.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>snapshot<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<h3 id="flags">Flags</h3>
+<div class="highlight"><pre><span></span><code>--path,<span class="w"> </span>-p<span class="w"> </span>string<span class="w">     </span>Directory<span class="w"> </span>to<span class="w"> </span>snapshot<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--output,<span class="w"> </span>-o<span class="w"> </span>string<span class="w">   </span>Output<span class="w"> </span>snapshot<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--exclude<span class="w"> </span>string<span class="w">      </span>Exclude<span class="w"> </span>pattern<span class="w"> </span><span class="o">(</span>e.g.,<span class="w"> </span><span class="s2">&quot;*.tmp,*.log&quot;</span><span class="o">)</span>
+--no-hash<span class="w">             </span>Skip<span class="w"> </span>file<span class="w"> </span>content<span class="w"> </span>hashing
+</code></pre></div>
+<h3 id="examples">Examples</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Create a snapshot of the current directory</span>
+flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class="w"> </span>.<span class="w"> </span>--output<span class="w"> </span>backup.snap
+
+<span class="c1"># Create a snapshot excluding temporary files</span>
+flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class="w"> </span>/home/user/documents<span class="w"> </span>--output<span class="w"> </span>docs.snap<span class="w"> </span>--exclude<span class="w"> </span><span class="s2">&quot;*.tmp,*.bak&quot;</span>
+
+<span class="c1"># Create a snapshot without computing file hashes (faster but less accurate)</span>
+flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class="w"> </span>/var/www<span class="w"> </span>--output<span class="w"> </span>web.snap<span class="w"> </span>--no-hash
+</code></pre></div>
+<h2 id="diff-command">Diff Command</h2>
+<p>Compute differences between snapshots and store them in a structured format.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<h3 id="flags_1">Flags</h3>
+<div class="highlight"><pre><span></span><code>--base, -b string     Base snapshot file (required)
+--target, -t string   Target snapshot file (required)
+--output, -o string   Output diff file (required)
+--detailed            Perform detailed comparison including file content hashes
+--parallel int        Number of parallel workers for comparison (default: number of CPU cores)
+--no-hash             Skip hash comparison (faster but less accurate)
+--path-filter string  Only compare files matching the specified path pattern
+</code></pre></div>
+<h3 id="examples_1">Examples</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Compute differences between two snapshots</span>
+flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff
+
+<span class="c1"># Detailed comparison with 8 parallel workers</span>
+flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff<span class="w"> </span>--detailed<span class="w"> </span>--parallel<span class="w"> </span><span class="m">8</span>
+
+<span class="c1"># Compare only files in a specific directory</span>
+flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff<span class="w"> </span>--path-filter<span class="w"> </span><span class="s2">&quot;/home/user/documents/*&quot;</span>
+</code></pre></div>
+<h3 id="diff-format">Diff Format</h3>
+<p>The generated diff file contains a structured representation of changes:</p>
+<ul>
+<li><strong>Added files</strong>: Files that exist in the target snapshot but not in the base snapshot</li>
+<li><strong>Modified files</strong>: Files that exist in both snapshots but have different metadata or content</li>
+<li><strong>Deleted files</strong>: Files that exist in the base snapshot but not in the target snapshot</li>
+</ul>
+<p>Each change is stored as a <code>DiffEntry</code> with:</p>
+<ul>
+<li>Path of the changed file</li>
+<li>Type of change (added, modified, deleted)</li>
+<li>Before and after values for size, modification time, permissions, and content hash (as applicable)</li>
+</ul>
+<p>This structured format enables efficient application of changes and provides detailed information about what has changed between snapshots.</p>
+<h2 id="apply-command">Apply Command</h2>
+<p>Apply a diff to a snapshot to generate a new snapshot.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>apply<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<h3 id="flags_2">Flags</h3>
+<div class="highlight"><pre><span></span><code>--base, -b string    Base snapshot file (required)
+--diff, -d string    Diff file to apply (required)
+--output, -o string  Output snapshot file (required)
+</code></pre></div>
+<h3 id="examples_2">Examples</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Apply a diff to generate a new snapshot</span>
+flashfs<span class="w"> </span>apply<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--diff<span class="w"> </span>changes.diff<span class="w"> </span>--output<span class="w"> </span>snapshot2.snap
+</code></pre></div>
+<h3 id="how-apply-works">How Apply Works</h3>
+<p>The apply command:</p>
+<ol>
+<li>Loads the base snapshot into memory</li>
+<li>Deserializes the diff file into a structured Diff object</li>
+<li>Processes each DiffEntry based on its type:</li>
+<li>For added files (type 0): Creates a new entry in the snapshot</li>
+<li>For modified files (type 1): Updates the existing entry with new metadata</li>
+<li>For deleted files (type 2): Removes the entry from the snapshot</li>
+<li>Serializes the modified snapshot and writes it to the output file</li>
+</ol>
+<p>This structured approach ensures that changes are applied correctly and efficiently, maintaining the integrity of your file system representation.</p>
+<h2 id="query-command">Query Command</h2>
+<p>Query snapshot contents.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>query<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<h3 id="flags_3">Flags</h3>
+<div class="highlight"><pre><span></span><code>--snapshot, -s string       Snapshot file to query (required)
+--path string               Path pattern to filter by (e.g., &quot;/home/user/*&quot;)
+--modified-after string     Show files modified after this date (format: YYYY-MM-DD)
+--modified-before string    Show files modified before this date (format: YYYY-MM-DD)
+--size-gt int               Show files larger than this size (in bytes)
+--size-lt int               Show files smaller than this size (in bytes)
+--is-dir                    Show only directories
+--is-file                   Show only files
+--format string             Output format: text, json, csv (default &quot;text&quot;)
+</code></pre></div>
+<h3 id="examples_3">Examples</h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># List all files in a snapshot</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap
+
+<span class="c1"># Find large files modified recently</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap<span class="w"> </span>--size-gt<span class="w"> </span><span class="m">10485760</span><span class="w"> </span>--modified-after<span class="w"> </span><span class="s2">&quot;2023-01-01&quot;</span>
+
+<span class="c1"># Find all .log files in a specific directory</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap<span class="w"> </span>--path<span class="w"> </span><span class="s2">&quot;/var/log/*.log&quot;</span>
+
+<span class="c1"># Export results as JSON</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap<span class="w"> </span>--path<span class="w"> </span><span class="s2">&quot;*.mp4&quot;</span><span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span>&gt;<span class="w"> </span>videos.json
+</code></pre></div>
+<h2 id="expiry-command">Expiry Command</h2>
+<p>Manage snapshot expiry policies.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="o">[</span>command<span class="o">]</span>
+</code></pre></div>
+<h3 id="subcommands">Subcommands</h3>
+<h4 id="set">Set</h4>
+<p>Set the expiry policy for snapshots.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">set</span><span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<h5 id="flags_4">Flags</h5>
+<div class="highlight"><pre><span></span><code>--max-snapshots int    Maximum number of snapshots to keep (0 = unlimited)
+--max-age string       Maximum age of snapshots to keep (e.g., 30d, 2w, 6m, 1y)
+--keep-hourly int      Number of hourly snapshots to keep
+--keep-daily int       Number of daily snapshots to keep
+--keep-weekly int      Number of weekly snapshots to keep
+--keep-monthly int     Number of monthly snapshots to keep
+--keep-yearly int      Number of yearly snapshots to keep
+--apply                Apply the policy immediately after setting it
+--dir string           Base directory for snapshots (default: current directory)
+</code></pre></div>
+<h5 id="examples_4">Examples</h5>
+<div class="highlight"><pre><span></span><code><span class="c1"># Keep only the 10 most recent snapshots</span>
+flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">set</span><span class="w"> </span>--max-snapshots<span class="w"> </span><span class="m">10</span>
+
+<span class="c1"># Remove snapshots older than 30 days</span>
+flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">set</span><span class="w"> </span>--max-age<span class="w"> </span>30d
+
+<span class="c1"># Set a comprehensive retention policy</span>
+flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">set</span><span class="w"> </span>--keep-hourly<span class="w"> </span><span class="m">24</span><span class="w"> </span>--keep-daily<span class="w"> </span><span class="m">7</span><span class="w"> </span>--keep-weekly<span class="w"> </span><span class="m">4</span><span class="w"> </span>--keep-monthly<span class="w"> </span><span class="m">12</span><span class="w"> </span>--keep-yearly<span class="w"> </span><span class="m">5</span>
+
+<span class="c1"># Set a policy and apply it immediately</span>
+flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">set</span><span class="w"> </span>--max-age<span class="w"> </span>30d<span class="w"> </span>--apply
+</code></pre></div>
+<h4 id="apply">Apply</h4>
+<p>Apply the current expiry policy to snapshots.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span>apply<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<h5 id="flags_5">Flags</h5>
+<div class="highlight"><pre><span></span><code>--dir string  Base directory for snapshots (default: current directory)
+</code></pre></div>
+<h5 id="examples_5">Examples</h5>
+<div class="highlight"><pre><span></span><code><span class="c1"># Apply the current expiry policy</span>
+flashfs<span class="w"> </span>expiry<span class="w"> </span>apply
+
+<span class="c1"># Apply the policy to snapshots in a specific directory</span>
+flashfs<span class="w"> </span>expiry<span class="w"> </span>apply<span class="w"> </span>--dir<span class="w"> </span>/path/to/snapshots
+</code></pre></div>
+<h4 id="show">Show</h4>
+<p>Show the current expiry policy.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span>show<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<h5 id="flags_6">Flags</h5>
+<div class="highlight"><pre><span></span><code>--dir string  Base directory for snapshots (default: current directory)
+</code></pre></div>
+<h5 id="examples_6">Examples</h5>
+<div class="highlight"><pre><span></span><code><span class="c1"># Show the current expiry policy</span>
+flashfs<span class="w"> </span>expiry<span class="w"> </span>show
+
+<span class="c1"># Show the policy for snapshots in a specific directory</span>
+flashfs<span class="w"> </span>expiry<span class="w"> </span>show<span class="w"> </span>--dir<span class="w"> </span>/path/to/snapshots
+</code></pre></div>
+<h2 id="implementation-details">Implementation Details</h2>
+<h3 id="command-registration">Command Registration</h3>
+<p>Commands are registered in the <code>cmd</code> package:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">init</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">RootCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">snapshotCmd</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">RootCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">diffCmd</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">RootCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">applyCmd</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">RootCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">queryCmd</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">RootCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">expiryCmd</span><span class="p">)</span>
+
+<span class="w">    </span><span class="c1">// Register expiry subcommands</span>
+<span class="w">    </span><span class="nx">expiryCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">setExpiryCmd</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">expiryCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">applyExpiryCmd</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">expiryCmd</span><span class="p">.</span><span class="nx">AddCommand</span><span class="p">(</span><span class="nx">showExpiryCmd</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="command-execution">Command Execution</h3>
+<p>Each command is implemented as a Cobra command with a <code>RunE</code> function:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">var</span><span class="w"> </span><span class="nx">snapshotCmd</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Use</span><span class="p">:</span><span class="w">   </span><span class="s">&quot;snapshot&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">Short</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;Create a snapshot of a directory&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">Long</span><span class="p">:</span><span class="w">  </span><span class="s">`Create a snapshot of a directory, capturing file metadata and optionally content hashes.`</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">RunE</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">cmd</span><span class="w"> </span><span class="o">*</span><span class="nx">cobra</span><span class="p">.</span><span class="nx">Command</span><span class="p">,</span><span class="w"> </span><span class="nx">args</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// Command implementation</span>
+<span class="w">        </span><span class="c1">// ...</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">    </span><span class="p">},</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="error-handling">Error Handling</h3>
+<p>The CLI provides detailed error messages and appropriate exit codes:</p>
+<div class="highlight"><pre><span></span><code><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Fprintf</span><span class="p">(</span><span class="nx">os</span><span class="p">.</span><span class="nx">Stderr</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;Error: %v\n&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">os</span><span class="p">.</span><span class="nx">Exit</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="advanced-usage">Advanced Usage</h2>
+<h3 id="scripting">Scripting</h3>
+<p>FlashFS commands can be used in scripts for automation:</p>
+<div class="highlight"><pre><span></span><code><span class="ch">#!/bin/bash</span>
+<span class="c1"># Create daily snapshots and apply expiry policy</span>
+
+<span class="c1"># Create a snapshot with the current date</span>
+<span class="nv">DATE</span><span class="o">=</span><span class="k">$(</span>date<span class="w"> </span>+%Y%m%d<span class="k">)</span>
+flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class="w"> </span>/home/user/documents<span class="w"> </span>--output<span class="w"> </span>backup-<span class="nv">$DATE</span>.snap
+
+<span class="c1"># Apply expiry policy to clean up old snapshots</span>
+flashfs<span class="w"> </span>expiry<span class="w"> </span>apply
+</code></pre></div>
+<h3 id="piping-output">Piping Output</h3>
+<p>Query results can be piped to other commands:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Find large files and sort by size</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap<span class="w"> </span>--size-gt<span class="w"> </span><span class="m">10485760</span><span class="w"> </span>--format<span class="w"> </span>csv<span class="w"> </span><span class="p">|</span><span class="w"> </span>sort<span class="w"> </span>-t,<span class="w"> </span>-k2<span class="w"> </span>-n
+
+<span class="c1"># Find recent changes and send a report by email</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap<span class="w"> </span>--modified-after<span class="w"> </span><span class="s2">&quot;2023-01-01&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>mail<span class="w"> </span>-s<span class="w"> </span><span class="s2">&quot;Recent Changes&quot;</span><span class="w"> </span>user@example.com
+</code></pre></div>
+<h3 id="integration-with-other-tools">Integration with Other Tools</h3>
+<p>FlashFS can be integrated with other tools:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Use with find to process multiple directories</span>
+find<span class="w"> </span>/home<span class="w"> </span>-type<span class="w"> </span>d<span class="w"> </span>-name<span class="w"> </span><span class="s2">&quot;projects&quot;</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>xargs<span class="w"> </span>-I<span class="o">{}</span><span class="w"> </span>flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class="w"> </span><span class="o">{}</span><span class="w"> </span>--output<span class="w"> </span><span class="o">{}</span>.snap
+
+<span class="c1"># Use with cron for scheduled snapshots</span>
+<span class="c1"># Add to crontab: 0 0 * * * /path/to/snapshot_script.sh</span>
+</code></pre></div>
+
+
+
+
+
+
+
+  
+    
+  
+  
+
+
+  <aside class="md-source-file">
+    
+      
+  <span class="md-source-file__fact">
+    <span class="md-icon" title="Last update">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
+    </span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 5, 2025 09:23:27">March 5, 2025</span>
+  </span>
+
+    
+    
+    
+    
+  </aside>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/TFMV/flashfs" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.7.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2024 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8M97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "toc.integrate", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
+      
+    
+  </body>
+</html>
