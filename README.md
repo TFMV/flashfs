@@ -18,6 +18,7 @@ FlashFS is a high-performance file system snapshot and comparison tool designed 
 - **Bloom Filters**: Quickly identifies modified files without full snapshot comparison
 - **Enhanced Diff Generation**: Creates, stores, and applies optimized diffs between snapshots with parallel processing
 - **Snapshot Expiry Policies**: Automatically manages snapshot lifecycle with configurable retention policies
+- **Cloud Storage Integration**: Export and restore snapshots to/from S3, GCS, or compatible object storage
 
 ## Installation
 
@@ -97,6 +98,35 @@ Show the current expiry policy:
 flashfs expiry show
 ```
 
+### Cloud Storage Integration
+
+Export snapshots to cloud storage:
+
+```bash
+# Export a specific snapshot to S3
+flashfs export s3://mybucket/flashfs-backups/ --snapshot snapshot1.snap
+
+# Export all snapshots to GCS
+flashfs export gcs://my-bucket-name/ --all
+
+# Export to MinIO or other S3-compatible storage
+export S3_ENDPOINT=https://minio.example.com
+export S3_ACCESS_KEY=your-access-key
+export S3_SECRET_KEY=your-secret-key
+export S3_FORCE_PATH_STYLE=true
+flashfs export s3://mybucket/backups/ --all
+```
+
+Restore snapshots from cloud storage:
+
+```bash
+# Restore a specific snapshot from S3
+flashfs restore s3://mybucket/flashfs-backups/ --snapshot snapshot1.snap
+
+# Restore all snapshots from GCS
+flashfs restore gcs://my-bucket-name/ --all
+```
+
 ## Docs
 
 Please see the [documentation](TFMV.github.io/flashfs/) for details.
@@ -110,6 +140,8 @@ graph TD
         A --> C[Diff Command]
         A --> D[Query Command]
         A --> E1[Expiry Command]
+        A --> CS1[Export Command]
+        A --> CS2[Restore Command]
     end
 
     subgraph Core Components
@@ -131,6 +163,15 @@ graph TD
         G3 --> |Cache| G8[Memory Cache]
         G3 --> |Decompress| H
         G9 --> |Manage Lifecycle| H
+    end
+
+    subgraph Cloud Storage Module
+        CS3[Cloud Storage] --> CS4[S3 Provider]
+        CS3 --> CS5[GCS Provider]
+        CS3 --> CS6[Upload/Download]
+        CS3 --> CS7[Compression]
+        CS6 --> |Export| H
+        H --> |Restore| CS6
     end
 
     subgraph Walker Module
@@ -163,6 +204,8 @@ graph TD
     C --> G4
     D --> G6
     E1 --> G9
+    CS1 --> CS3
+    CS2 --> CS3
 ```
 
 ## License
