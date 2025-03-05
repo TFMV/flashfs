@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -613,14 +614,28 @@ func createBloomFilter(snapshot map[string]walker.SnapshotEntry, falsePositiveRa
 		n = 1 // Avoid division by zero
 	}
 
-	// m = -n*ln(p)/(ln(2)^2)
-	m := uint(-float64(n) * 1.44 * 0.693147180559945 / falsePositiveRate)
+	// Ensure falsePositiveRate is reasonable
+	if falsePositiveRate <= 0 {
+		falsePositiveRate = 0.01 // Default to 1% false positive rate
+	}
+	if falsePositiveRate >= 1 {
+		falsePositiveRate = 0.99 // Cap at 99% false positive rate
+	}
+
+	// Calculate optimal size: m = -n*ln(p)/(ln(2)^2)
+	// Use a safer calculation method
+	m := int(math.Ceil(-float64(n) * math.Log(falsePositiveRate) / (math.Log(2) * math.Log(2))))
+
+	// Apply reasonable bounds
 	if m < 1024 {
 		m = 1024 // Minimum size
 	}
+	if m > 100000000 { // 100MB max
+		m = 100000000
+	}
 
-	// k = m/n * ln(2)
-	k := uint(float64(m) / float64(n) * 0.693147180559945)
+	// Calculate optimal number of hash functions: k = m/n * ln(2)
+	k := uint(math.Ceil(float64(m) / float64(n) * math.Log(2)))
 	if k < 1 {
 		k = 1
 	}
@@ -628,9 +643,14 @@ func createBloomFilter(snapshot map[string]walker.SnapshotEntry, falsePositiveRa
 		k = 30 // Maximum number of hash functions
 	}
 
-	// Create the bloom filter
+	// Create the bloom filter with a safe size calculation
+	bitsLen := (m + 7) / 8 // Round up to nearest byte
+	if bitsLen <= 0 {
+		bitsLen = 1 // Ensure at least 1 byte
+	}
+
 	bf := &BloomFilter{
-		bits:    make([]byte, (m+7)/8), // Round up to nearest byte
+		bits:    make([]byte, bitsLen),
 		numHash: k,
 	}
 
