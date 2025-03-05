@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -39,6 +40,11 @@ func computeHash(path string) []byte {
 
 // Walk performs a concurrent directory traversal starting at root.
 func Walk(root string) ([]SnapshotEntry, error) {
+	return WalkWithContext(context.Background(), root)
+}
+
+// WalkWithContext performs a concurrent directory traversal starting at root with context support.
+func WalkWithContext(ctx context.Context, root string) ([]SnapshotEntry, error) {
 	// Check if root exists and is a directory
 	info, err := os.Stat(root)
 	if err != nil {
@@ -61,6 +67,16 @@ func Walk(root string) ([]SnapshotEntry, error) {
 	ch := make(chan string, 100)
 	var wg sync.WaitGroup
 
+	// Create a context for cancellation
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	// Error channel to collect errors from workers
+	errCh := make(chan error, 1)
+
+	// Done channel to signal completion
+	done := make(chan struct{})
+
 	// Number of concurrent workers (can be tuned/adapted).
 	workers := 4
 
@@ -68,12 +84,34 @@ func Walk(root string) ([]SnapshotEntry, error) {
 	for i := 0; i < workers; i++ {
 		go func() {
 			for dir := range ch {
+				// Check for context cancellation
+				select {
+				case <-ctx.Done():
+					wg.Done()
+					continue
+				default:
+				}
+
 				files, err := godirwalk.ReadDirents(dir, nil)
 				if err != nil {
+					// Send the first error encountered
+					select {
+					case errCh <- err:
+						cancel() // Cancel other workers
+					default:
+					}
+					wg.Done()
 					continue
 				}
 
 				for _, file := range files {
+					// Check for context cancellation
+					select {
+					case <-ctx.Done():
+						break
+					default:
+					}
+
 					fullPath := filepath.Join(dir, file.Name())
 					info, err := os.Stat(fullPath)
 					if err != nil {
@@ -106,8 +144,14 @@ func Walk(root string) ([]SnapshotEntry, error) {
 					mu.Unlock()
 
 					if info.IsDir() {
-						wg.Add(1)
-						ch <- fullPath
+						// Check for context cancellation before adding more work
+						select {
+						case <-ctx.Done():
+							break
+						default:
+							wg.Add(1)
+							ch <- fullPath
+						}
 					}
 				}
 				wg.Done()
@@ -119,9 +163,23 @@ func Walk(root string) ([]SnapshotEntry, error) {
 	wg.Add(1)
 	ch <- absRoot
 
-	// Wait until all directories have been processed.
-	wg.Wait()
-	close(ch)
+	// Wait for completion in a separate goroutine
+	go func() {
+		wg.Wait()
+		close(ch)
+		close(done)
+	}()
 
-	return entries, nil
+	// Wait for either completion, error, or context cancellation
+	select {
+	case <-done:
+		// All work completed successfully
+		return entries, nil
+	case err := <-errCh:
+		// An error occurred
+		return entries, err
+	case <-ctx.Done():
+		// Context was canceled
+		return entries, ctx.Err()
+	}
 }
