@@ -1,6 +1,7 @@
 package walker
 
 import (
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -38,8 +39,23 @@ func computeHash(path string) []byte {
 
 // Walk performs a concurrent directory traversal starting at root.
 func Walk(root string) ([]SnapshotEntry, error) {
+	// Check if root exists and is a directory
+	info, err := os.Stat(root)
+	if err != nil {
+		return nil, err
+	}
+	if !info.IsDir() {
+		return nil, fmt.Errorf("%s is not a directory", root)
+	}
+
 	var entries []SnapshotEntry
 	var mu sync.Mutex
+
+	// Ensure root path is absolute
+	absRoot, err := filepath.Abs(root)
+	if err != nil {
+		return nil, err
+	}
 
 	// Channel for directories to process.
 	ch := make(chan string, 100)
@@ -70,8 +86,14 @@ func Walk(root string) ([]SnapshotEntry, error) {
 						hash = computeHash(fullPath)
 					}
 
+					// Calculate path relative to root
+					relPath, err := filepath.Rel(absRoot, fullPath)
+					if err != nil {
+						continue
+					}
+
 					entry := SnapshotEntry{
-						Path:        fullPath,
+						Path:        relPath,
 						Size:        info.Size(),
 						ModTime:     info.ModTime().Unix(),
 						IsDir:       info.IsDir(),
@@ -95,7 +117,7 @@ func Walk(root string) ([]SnapshotEntry, error) {
 
 	// Enqueue the root directory.
 	wg.Add(1)
-	ch <- root
+	ch <- absRoot
 
 	// Wait until all directories have been processed.
 	wg.Wait()
