@@ -1,5 +1,10 @@
 # FlashFS: High-Performance File System Snapshot Tool
 
+[![Go 1.24](https://img.shields.io/badge/Go-1.24-blue.svg)](https://golang.org/doc/go1.24)
+[![Go Report Card](https://goreportcard.com/badge/github.com/TFMV/flashfs)](https://goreportcard.com/report/github.com/TFMV/flashfs)
+[![Go Reference](https://pkg.go.dev/badge/github.com/TFMV/flashfs.svg)](https://pkg.go.dev/github.com/TFMV/flashfs)
+[![Documentation](https://img.shields.io/badge/docs-website-blue)](https://tfmv.github.io/flashfs/)
+
 FlashFS is a high-performance file system snapshot and comparison tool designed for large-scale environments. It efficiently captures file system metadata, stores it in a compact format, and provides fast comparison capabilities.
 
 ## Features
@@ -92,7 +97,7 @@ flashfs expiry show
 
 ## Docs
 
-See the docs directory for implementation details.
+Please see the [documentation](TFMV.github.io/flashfs/) for details.
 
 ## Architecture
 
@@ -160,4 +165,4 @@ graph TD
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the [MIT License](LICENSE).
