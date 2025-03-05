@@ -462,11 +462,10 @@ func TestBloomFilter(t *testing.T) {
 	}
 }
 
-// Skip the TestCreateBloomFilter test as it's probabilistic and can be flaky
 func TestCreateBloomFilterSimple(t *testing.T) {
-	// Create a small test snapshot
+	// Create a simple snapshot
 	snapshot := make(map[string]walker.SnapshotEntry)
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		path := fmt.Sprintf("file%d.txt", i)
 		snapshot[path] = walker.SnapshotEntry{
 			Path: path,
@@ -474,7 +473,7 @@ func TestCreateBloomFilterSimple(t *testing.T) {
 		}
 	}
 
-	// Create bloom filter
+	// Create bloom filter with a reasonable false positive rate
 	bf := createBloomFilter(snapshot, 0.01)
 
 	// Check that all items are in the filter
@@ -482,5 +481,34 @@ func TestCreateBloomFilterSimple(t *testing.T) {
 		if !bf.Contains([]byte(path)) {
 			t.Errorf("Item %q should be in the bloom filter", path)
 		}
+	}
+}
+
+func TestCreateBloomFilterEdgeCases(t *testing.T) {
+	// Test with empty snapshot
+	emptySnapshot := make(map[string]walker.SnapshotEntry)
+	bf1 := createBloomFilter(emptySnapshot, 0.01)
+	if bf1 == nil {
+		t.Fatal("Bloom filter should not be nil for empty snapshot")
+	}
+
+	// Test with very small false positive rate
+	smallSnapshot := make(map[string]walker.SnapshotEntry)
+	smallSnapshot["test.txt"] = walker.SnapshotEntry{Path: "test.txt"}
+	bf2 := createBloomFilter(smallSnapshot, 0.0000001)
+	if bf2 == nil {
+		t.Fatal("Bloom filter should not be nil for very small false positive rate")
+	}
+
+	// Test with very large false positive rate
+	bf3 := createBloomFilter(smallSnapshot, 0.99999)
+	if bf3 == nil {
+		t.Fatal("Bloom filter should not be nil for very large false positive rate")
+	}
+
+	// Test with negative false positive rate (should use default)
+	bf4 := createBloomFilter(smallSnapshot, -0.5)
+	if bf4 == nil {
+		t.Fatal("Bloom filter should not be nil for negative false positive rate")
 	}
 }
