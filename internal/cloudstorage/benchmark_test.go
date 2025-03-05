@@ -2,8 +2,8 @@ package cloudstorage
 
 import (
 	"context"
+	"crypto/rand"
 	"fmt"
-	"math/rand"
 	"os"
 	"testing"
 	"time"
@@ -13,30 +13,32 @@ import (
 )
 
 const (
-	// Benchmark file sizes
+	// Test file sizes
 	smallFileSize  = 1 * 1024 * 1024  // 1MB
 	mediumFileSize = 10 * 1024 * 1024 // 10MB
-	largeFileSize  = 50 * 1024 * 1024 // 50MB (use smaller size for tests)
+	largeFileSize  = 50 * 1024 * 1024 // 50MB
 )
 
-// createTestFile creates a test file with random data of the specified size
+// createTestFile creates a temporary file with random data of the specified size
 func createTestFile(t testing.TB, size int) string {
 	tempFile, err := os.CreateTemp("", fmt.Sprintf("flashfs-benchmark-%d-*.dat", size))
 	require.NoError(t, err)
+	defer tempFile.Close()
 
-	// Create a buffer with random data
-	buf := make([]byte, 64*1024) // 64KB buffer for writing
+	// Create a buffer for writing random data
+	buf := make([]byte, 1024*1024) // 1MB buffer
 	bytesWritten := 0
 
+	// Write random data until we reach the desired size
 	for bytesWritten < size {
 		// Fill buffer with random data
 		_, err := rand.Read(buf)
 		require.NoError(t, err)
 
-		// Calculate how much to write
-		writeSize := size - bytesWritten
-		if writeSize > len(buf) {
-			writeSize = len(buf)
+		// Adjust buffer size for the last write if needed
+		writeSize := len(buf)
+		if bytesWritten+writeSize > size {
+			writeSize = size - bytesWritten
 		}
 
 		// Write to file
@@ -45,7 +47,6 @@ func createTestFile(t testing.TB, size int) string {
 		bytesWritten += n
 	}
 
-	require.NoError(t, tempFile.Close())
 	return tempFile.Name()
 }
 
@@ -53,27 +54,30 @@ func createTestFile(t testing.TB, size int) string {
 func setupBenchmarkStorage(b *testing.B) (*CloudStorage, func()) {
 	// Skip if no credentials are available
 	if os.Getenv("S3_ACCESS_KEY") == "" || os.Getenv("S3_SECRET_KEY") == "" {
-		b.Skip("skipping benchmark: S3 credentials not available")
+		b.Skip("Skipping cloud storage benchmark: S3 credentials not available")
 	}
 
+	// Use a test bucket
 	bucket := os.Getenv("S3_TEST_BUCKET")
 	if bucket == "" {
-		b.Skip("skipping benchmark: S3_TEST_BUCKET not set")
+		bucket = "flashfs-benchmark"
 	}
 
-	// Use a NopLogger to avoid logging overhead during benchmarks
-	logger := log.NewNopLogger()
+	// Create a logger that writes to the test log
+	logger := log.NewLogfmtLogger(log.NewSyncWriter(os.Stderr))
 
-	// Create a cloud storage client
+	// Create a cloud storage instance
 	ctx := context.Background()
 	storage, err := NewFromEnv(ctx, S3Storage, bucket, logger)
-	require.NoError(b, err)
+	if err != nil {
+		b.Fatalf("Failed to create cloud storage: %v", err)
+	}
 
 	// Set log sample rate to a high value to minimize logging
 	storage.SetLogSampleRate(1000000)
 	storage.SetLogVerbose(false)
 
-	// Return the storage client and a cleanup function
+	// Return the storage and a cleanup function
 	return storage, func() {
 		storage.Close()
 	}
@@ -96,8 +100,10 @@ func BenchmarkUploadSmallFile(b *testing.B) {
 		err := storage.Upload(ctx, fileName, objectName, false)
 		require.NoError(b, err)
 
-		// Cleanup
-		_ = storage.Delete(ctx, objectName)
+		// Clean up
+		if err := storage.Delete(ctx, objectName); err != nil {
+			b.Logf("Warning: Failed to delete object %s: %v", objectName, err)
+		}
 	}
 }
 
@@ -118,8 +124,10 @@ func BenchmarkUploadSmallFileCompressed(b *testing.B) {
 		err := storage.Upload(ctx, fileName, objectName, true)
 		require.NoError(b, err)
 
-		// Cleanup
-		_ = storage.Delete(ctx, objectName+".zst")
+		// Clean up
+		if err := storage.Delete(ctx, objectName+".zst"); err != nil {
+			b.Logf("Warning: Failed to delete object %s.zst: %v", objectName, err)
+		}
 	}
 }
 
@@ -140,8 +148,10 @@ func BenchmarkUploadMediumFile(b *testing.B) {
 		err := storage.Upload(ctx, fileName, objectName, false)
 		require.NoError(b, err)
 
-		// Cleanup
-		_ = storage.Delete(ctx, objectName)
+		// Clean up
+		if err := storage.Delete(ctx, objectName); err != nil {
+			b.Logf("Warning: Failed to delete object %s: %v", objectName, err)
+		}
 	}
 }
 
@@ -162,8 +172,10 @@ func BenchmarkUploadLargeFile(b *testing.B) {
 		err := storage.Upload(ctx, fileName, objectName, false)
 		require.NoError(b, err)
 
-		// Cleanup
-		_ = storage.Delete(ctx, objectName)
+		// Clean up
+		if err := storage.Delete(ctx, objectName); err != nil {
+			b.Logf("Warning: Failed to delete object %s: %v", objectName, err)
+		}
 	}
 }
 
@@ -181,7 +193,11 @@ func BenchmarkDownloadSmallFile(b *testing.B) {
 	objectName := fmt.Sprintf("test/benchmark-download-small-%d.dat", time.Now().UnixNano())
 	err := storage.Upload(ctx, fileName, objectName, false)
 	require.NoError(b, err)
-	defer storage.Delete(ctx, objectName)
+	defer func() {
+		if err := storage.Delete(ctx, objectName); err != nil {
+			b.Logf("Warning: Failed to delete object %s: %v", objectName, err)
+		}
+	}()
 
 	// Create a temporary file for downloads
 	downloadFile, err := os.CreateTemp("", "flashfs-benchmark-download-*.dat")
@@ -195,9 +211,6 @@ func BenchmarkDownloadSmallFile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		err := storage.Download(ctx, objectName, downloadPath, false)
 		require.NoError(b, err)
-
-		// Remove the downloaded file to ensure a clean download each time
-		os.Remove(downloadPath)
 	}
 }
 
@@ -215,7 +228,11 @@ func BenchmarkDownloadMediumFile(b *testing.B) {
 	objectName := fmt.Sprintf("test/benchmark-download-medium-%d.dat", time.Now().UnixNano())
 	err := storage.Upload(ctx, fileName, objectName, false)
 	require.NoError(b, err)
-	defer storage.Delete(ctx, objectName)
+	defer func() {
+		if err := storage.Delete(ctx, objectName); err != nil {
+			b.Logf("Warning: Failed to delete object %s: %v", objectName, err)
+		}
+	}()
 
 	// Create a temporary file for downloads
 	downloadFile, err := os.CreateTemp("", "flashfs-benchmark-download-*.dat")
@@ -229,9 +246,6 @@ func BenchmarkDownloadMediumFile(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		err := storage.Download(ctx, objectName, downloadPath, false)
 		require.NoError(b, err)
-
-		// Remove the downloaded file to ensure a clean download each time
-		os.Remove(downloadPath)
 	}
 }
 
@@ -298,8 +312,8 @@ func BenchmarkCompressionRatio(b *testing.B) {
 				defer f.Close()
 
 				// Generate 1MB of JSON-like data
-				for i := 0; i < 1024*1024/200; i++ {
-					if _, err := f.WriteString(fmt.Sprintf(`{"id":%d,"name":"Test Item %d","description":"This is a test item with a longer description","created":%d,"tags":["test","benchmark","json"],"metadata":{"author":"FlashFS","version":"1.0","timestamp":%d}},`, i, i, time.Now().Unix(), time.Now().UnixNano())); err != nil {
+				for i := 0; i < 1024*1024/100; i++ {
+					if _, err := f.WriteString(`{"id":` + fmt.Sprintf("%d", i) + `,"name":"Test Item","description":"This is a test item with some description text","tags":["test","benchmark","compression"],"metadata":{"created":"2023-01-01T00:00:00Z","updated":"2023-01-02T00:00:00Z","size":1024}}` + "\n"); err != nil {
 						return err
 					}
 				}
@@ -325,7 +339,11 @@ func BenchmarkCompressionRatio(b *testing.B) {
 			objectName := fmt.Sprintf("test/benchmark-compression-%s-%d.dat", ft.name, time.Now().UnixNano())
 			err = storage.Upload(ctx, fileName, objectName, true)
 			require.NoError(b, err)
-			defer storage.Delete(ctx, objectName+".zst")
+			defer func() {
+				if err := storage.Delete(ctx, objectName+".zst"); err != nil {
+					b.Logf("Warning: Failed to delete object %s.zst: %v", objectName, err)
+				}
+			}()
 
 			// Get compressed size if possible
 			var compressedSize int64
@@ -377,9 +395,12 @@ func RunBenchmarksAndGenerateReport(t *testing.T) string {
 	}
 
 	for _, bm := range benchmarks {
+		// Create a custom benchmark function that runs the benchmark once
 		result := testing.Benchmark(func(b *testing.B) {
-			b.N = 1 // Run only once for the report
-			bm.fn(b)
+			// The framework will set b.N to at least 1, so we'll run exactly once
+			if b.N > 0 {
+				bm.fn(b)
+			}
 		})
 		fmt.Printf("%s\t%s\n", bm.name, result.String())
 	}
