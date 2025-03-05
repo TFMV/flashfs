@@ -173,8 +173,12 @@ func init() {
 	// Required flags
 	diffCmd.Flags().String("old", "", "Path to the old snapshot file")
 	diffCmd.Flags().String("new", "", "Path to the new snapshot file")
-	diffCmd.MarkFlagRequired("old")
-	diffCmd.MarkFlagRequired("new")
+	if err := diffCmd.MarkFlagRequired("old"); err != nil {
+		panic(err)
+	}
+	if err := diffCmd.MarkFlagRequired("new"); err != nil {
+		panic(err)
+	}
 
 	// Optional flags
 	diffCmd.Flags().String("format", "simple", "Output format (simple, table, json)")
