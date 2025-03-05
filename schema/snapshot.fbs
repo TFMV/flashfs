@@ -1,0 +1,16 @@
+namespace flashfs;
+
+table FileEntry {
+  path: string;
+  size: long;
+  mtime: long;
+  isDir: bool;
+  permissions: uint;
+  hash: [ubyte];
+}
+
+table Snapshot {
+  entries: [FileEntry];
+}
+
+root_type Snapshot;
