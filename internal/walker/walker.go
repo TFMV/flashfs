@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sync"
 
 	"github.com/karrick/godirwalk"
@@ -78,7 +79,7 @@ func WalkWithContext(ctx context.Context, root string) ([]SnapshotEntry, error) 
 	done := make(chan struct{})
 
 	// Number of concurrent workers (can be tuned/adapted).
-	workers := 4
+	workers := runtime.NumCPU()
 
 	// Start worker goroutines.
 	for i := 0; i < workers; i++ {
