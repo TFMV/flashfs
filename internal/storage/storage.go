@@ -3,6 +3,7 @@ package storage
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -42,23 +43,26 @@ type SnapshotStore struct {
 	snapshotCache map[string][]byte
 	cacheSize     int
 	cacheKeys     []string
+	expiryPolicy  ExpiryPolicy
 }
 
 // NewSnapshotStore creates a new snapshot store
 func NewSnapshotStore(baseDir string) (*SnapshotStore, error) {
+	// Create base directory if it doesn't exist
 	if err := os.MkdirAll(baseDir, 0755); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create snapshot directory: %w", err)
 	}
 
+	// Create encoder and decoder
 	encoder, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(zstd.EncoderLevel(DefaultCompression)))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create zstd encoder: %w", err)
 	}
 
 	decoder, err := zstd.NewReader(nil)
 	if err != nil {
 		encoder.Close()
-		return nil, err
+		return nil, fmt.Errorf("failed to create zstd decoder: %w", err)
 	}
 
 	return &SnapshotStore{
@@ -68,6 +72,7 @@ func NewSnapshotStore(baseDir string) (*SnapshotStore, error) {
 		snapshotCache: make(map[string][]byte),
 		cacheSize:     DefaultCacheSize,
 		cacheKeys:     make([]string, 0, DefaultCacheSize),
+		expiryPolicy:  DefaultExpiryPolicy(),
 	}, nil
 }
 
@@ -514,4 +519,91 @@ func (s *SnapshotStore) CreateBloomFilterFromSnapshot(name string) (*BloomFilter
 	}
 
 	return filter, nil
+}
+
+// SetExpiryPolicy sets the expiry policy for the snapshot store
+func (s *SnapshotStore) SetExpiryPolicy(policy ExpiryPolicy) {
+	s.cacheMutex.Lock()
+	defer s.cacheMutex.Unlock()
+	s.expiryPolicy = policy
+}
+
+// GetExpiryPolicy returns the current expiry policy
+func (s *SnapshotStore) GetExpiryPolicy() ExpiryPolicy {
+	s.cacheMutex.RLock()
+	defer s.cacheMutex.RUnlock()
+	return s.expiryPolicy
+}
+
+// ApplyExpiryPolicy applies the current expiry policy to all snapshots
+func (s *SnapshotStore) ApplyExpiryPolicy() (int, error) {
+	// List all snapshots
+	snapshots, err := s.ListSnapshots()
+	if err != nil {
+		return 0, fmt.Errorf("failed to list snapshots: %w", err)
+	}
+
+	// Get snapshot info
+	snapshotInfos := make([]SnapshotInfo, 0, len(snapshots))
+	for _, name := range snapshots {
+		// Get snapshot timestamp
+		timestamp, err := ParseSnapshotName(name)
+		if err != nil {
+			// Skip snapshots with invalid names
+			continue
+		}
+
+		// Get snapshot size
+		path := filepath.Join(s.baseDir, name)
+		info, err := os.Stat(path)
+		if err != nil {
+			// Skip snapshots that can't be accessed
+			continue
+		}
+
+		snapshotInfos = append(snapshotInfos, SnapshotInfo{
+			Name:      name,
+			Timestamp: timestamp,
+			Size:      info.Size(),
+		})
+	}
+
+	// Apply expiry policy
+	s.cacheMutex.RLock()
+	policy := s.expiryPolicy
+	s.cacheMutex.RUnlock()
+
+	toDelete := ApplyExpiryPolicy(snapshotInfos, policy)
+
+	// Delete expired snapshots
+	deleted := 0
+	for _, name := range toDelete {
+		if err := s.DeleteSnapshot(name); err != nil {
+			// Continue even if some snapshots can't be deleted
+			continue
+		}
+		deleted++
+	}
+
+	return deleted, nil
+}
+
+// CreateSnapshot creates a new snapshot with the given data and applies the expiry policy
+func (s *SnapshotStore) CreateSnapshot(name string, data []byte) error {
+	// Generate timestamp-based name if not provided
+	if name == "" {
+		now := time.Now()
+		name = fmt.Sprintf("snapshot-%s-%s.snap",
+			now.Format("20060102"),
+			now.Format("150405"))
+	}
+
+	// Write the snapshot
+	if err := s.WriteSnapshot(name, data); err != nil {
+		return err
+	}
+
+	// Apply expiry policy
+	_, err := s.ApplyExpiryPolicy()
+	return err
 }
