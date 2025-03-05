@@ -9,7 +9,8 @@ FlashFS is a high-performance file system snapshot and comparison tool designed 
 - **Efficient Storage**: Uses FlatBuffers for compact binary representation and Zstd compression
 - **In-Memory Caching**: Implements LRU caching for frequently accessed snapshots
 - **Bloom Filters**: Quickly identifies modified files without full snapshot comparison
-- **Diff Generation**: Creates and applies diffs between snapshots
+- **Enhanced Diff Generation**: Creates, stores, and applies optimized diffs between snapshots with parallel processing
+- **Snapshot Expiry Policies**: Automatically manages snapshot lifecycle with configurable retention policies
 
 ## Architecture
 
@@ -19,6 +20,7 @@ graph TD
         A[Root Command] --> B[Snapshot Command]
         A --> C[Diff Command]
         A --> D[Query Command]
+        A --> E1[Expiry Command]
     end
 
     subgraph Core Components
@@ -35,15 +37,17 @@ graph TD
         G1 --> G5[Apply Diff]
         G1 --> G6[Query Snapshot]
         G1 --> G7[Bloom Filter]
+        G1 --> G9[Expiry Policy]
         G2 --> |Zstd Compression| H
         G3 --> |Cache| G8[Memory Cache]
         G3 --> |Decompress| H
+        G9 --> |Manage Lifecycle| H
     end
 
     subgraph Walker Module
-        E --> E1[File System Traversal]
-        E1 --> E2[Metadata Collection]
-        E2 --> E3[Hash Calculation]
+        E --> E2[File System Traversal]
+        E2 --> E3[Metadata Collection]
+        E3 --> E4[Hash Calculation]
     end
 
     subgraph Serializer Module
@@ -51,9 +55,25 @@ graph TD
         F1 --> F2[Binary Serialization]
     end
 
+    subgraph Expiry Module
+        G9 --> EP1[Retention Policies]
+        EP1 --> EP2[Hourly/Daily/Weekly]
+        EP1 --> EP3[Monthly/Yearly]
+        G9 --> EP4[Max Age Limit]
+        G9 --> EP5[Max Snapshots Limit]
+    end
+
+    subgraph Diff Module
+        G4 --> D1[Bloom Filter Check]
+        G4 --> D2[Parallel Processing]
+        G4 --> D3[Optimized Comparison]
+        G5 --> D4[Incremental Updates]
+    end
+
     B --> E
     C --> G4
     D --> G6
+    E1 --> G9
 ```
 
 ## Installation
@@ -84,6 +104,12 @@ flashfs snapshot --path /path/to/directory --output snapshot.snap
 flashfs diff --base snapshot1.snap --target snapshot2.snap --output diff.diff
 ```
 
+For detailed comparison with additional options:
+
+```bash
+flashfs diff --base snapshot1.snap --target snapshot2.snap --output diff.diff --detailed --parallel 4
+```
+
 ### Applying a Diff
 
 ```bash
@@ -96,6 +122,38 @@ flashfs apply --base snapshot1.snap --diff diff.diff --output snapshot2.snap
 flashfs query --snapshot snapshot.snap --path "/some/path/*" --modified-after "2023-01-01"
 ```
 
+### Managing Snapshot Expiry Policies
+
+Set a retention policy to keep a specific number of snapshots:
+
+```bash
+flashfs expiry set --max-snapshots 10
+```
+
+Set an age-based expiry policy:
+
+```bash
+flashfs expiry set --max-age 30d
+```
+
+Configure a granular retention policy:
+
+```bash
+flashfs expiry set --keep-hourly 24 --keep-daily 7 --keep-weekly 4 --keep-monthly 12
+```
+
+Apply the current expiry policy to clean up old snapshots:
+
+```bash
+flashfs expiry apply
+```
+
+Show the current expiry policy:
+
+```bash
+flashfs expiry show
+```
+
 ## Performance Considerations
 
 FlashFS is designed for high performance:
@@ -106,6 +164,36 @@ FlashFS is designed for high performance:
 - Uses Zstd compression for optimal size/speed balance
 - Implements in-memory caching for frequently accessed snapshots
 - Uses Bloom filters to quickly identify changed files
+
+## Snapshot Lifecycle Management
+
+FlashFS provides flexible snapshot lifecycle management through expiry policies:
+
+- **Maximum Snapshots**: Limit the total number of snapshots to keep
+- **Maximum Age**: Automatically remove snapshots older than a specified duration
+- **Retention Policies**: Configure granular retention for different time periods:
+  - Hourly: Keep a specified number of hourly snapshots
+  - Daily: Keep a specified number of daily snapshots
+  - Weekly: Keep a specified number of weekly snapshots
+  - Monthly: Keep a specified number of monthly snapshots
+  - Yearly: Keep a specified number of yearly snapshots
+
+Expiry policies are applied automatically when new snapshots are created, or can be manually applied using the `expiry apply` command.
+
+## Enhanced Diff Computation
+
+FlashFS implements advanced diff computation techniques to efficiently identify and represent changes between snapshots:
+
+- **Bloom Filter Pre-check**: Uses Bloom filters to quickly identify potentially modified files before performing detailed comparisons
+- **Parallel Processing**: Distributes diff computation across multiple CPU cores for faster processing of large snapshots
+- **Optimized Comparison**: Compares only necessary file attributes (path, size, modification time, permissions, hash) to minimize processing overhead
+- **Incremental Updates**: Generates compact diff files that contain only the changes between snapshots
+- **Detailed Comparison Options**: Provides options for controlling the level of detail in diff operations:
+  - Hash-based comparison for detecting content changes even when metadata is unchanged
+  - Path-based filtering to focus diff operations on specific directories
+  - Configurable parallelism for optimizing performance based on available resources
+
+The diff system enables efficient storage and transfer of incremental changes, making it ideal for backup systems, file synchronization, and monitoring file system changes over time.
 
 ## Dependencies
 
