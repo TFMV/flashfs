@@ -13,23 +13,25 @@
       
       
       
+        <link rel="prev" href="../storage/">
       
-        <link rel="next" href="cli/">
+      
+        <link rel="next" href="../diff/">
       
       
-      <link rel="icon" href="assets/images/favicon.png">
+      <link rel="icon" href="../assets/images/favicon.png">
       <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.6.7">
     
     
       
-        <title>FlashFS Documentation</title>
+        <title>Cloud Storage - FlashFS Documentation</title>
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.8608ea7d.min.css">
+      <link rel="stylesheet" href="../assets/stylesheets/main.8608ea7d.min.css">
       
         
-        <link rel="stylesheet" href="assets/stylesheets/palette.06af60db.min.css">
+        <link rel="stylesheet" href="../assets/stylesheets/palette.06af60db.min.css">
       
       
 
@@ -48,7 +50,7 @@
       
     
     
-    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
     
       
 
@@ -87,7 +89,7 @@
 
 <header class="md-header md-header--shadow" data-md-component="header">
   <nav class="md-header__inner md-grid" aria-label="Header">
-    <a href="." title="FlashFS Documentation" class="md-header__button md-logo" aria-label="FlashFS Documentation" data-md-component="logo">
+    <a href=".." title="FlashFS Documentation" class="md-header__button md-logo" aria-label="FlashFS Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -107,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Home
+              Cloud Storage
             
           </span>
         </div>
@@ -196,7 +198,7 @@
 
 <nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
   <label class="md-nav__title" for="__drawer">
-    <a href="." title="FlashFS Documentation" class="md-nav__button md-logo" aria-label="FlashFS Documentation" data-md-component="logo">
+    <a href=".." title="FlashFS Documentation" class="md-nav__button md-logo" aria-label="FlashFS Documentation" data-md-component="logo">
       
   
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
@@ -223,17 +225,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="." class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -243,7 +238,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -252,8 +246,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -272,13 +268,11 @@
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
@@ -293,7 +287,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             Components
@@ -307,7 +301,7 @@
   
   
     <li class="md-nav__item">
-      <a href="cli/" class="md-nav__link">
+      <a href="../cli/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -329,7 +323,7 @@
   
   
     <li class="md-nav__item">
-      <a href="walker/" class="md-nav__link">
+      <a href="../walker/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -351,7 +345,7 @@
   
   
     <li class="md-nav__item">
-      <a href="serializer/" class="md-nav__link">
+      <a href="../serializer/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -373,7 +367,7 @@
   
   
     <li class="md-nav__item">
-      <a href="schema/" class="md-nav__link">
+      <a href="../schema/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -395,7 +389,7 @@
   
   
     <li class="md-nav__item">
-      <a href="storage/" class="md-nav__link">
+      <a href="../storage/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -414,10 +408,17 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="cloud-storage/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -427,6 +428,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -490,7 +492,7 @@
   
   
     <li class="md-nav__item">
-      <a href="diff/" class="md-nav__link">
+      <a href="../diff/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -512,7 +514,7 @@
   
   
     <li class="md-nav__item">
-      <a href="expiry-policy/" class="md-nav__link">
+      <a href="../expiry-policy/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -569,104 +571,132 @@
   
 
 
-<h1 id="flashfs-documentation">FlashFS Documentation<a class="headerlink" href="#flashfs-documentation" title="Permanent link">&para;</a></h1>
-<p>FlashFS is a high-performance file system snapshot and diff tool designed for efficiently tracking and managing changes across file systems over time.</p>
+<h1 id="cloud-storage-integration">Cloud Storage Integration<a class="headerlink" href="#cloud-storage-integration" title="Permanent link">&para;</a></h1>
+<p>FlashFS provides integration with cloud storage services, allowing you to export snapshots to and restore them from cloud storage providers like Amazon S3, Google Cloud Storage (GCS), or any S3-compatible storage service (like MinIO).</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>FlashFS allows you to:</p>
+<p>The cloud storage integration enables:</p>
 <ul>
-<li><strong>Create snapshots</strong> of your file system's state at a point in time</li>
-<li><strong>Compare snapshots</strong> to identify exactly what has changed</li>
-<li><strong>Generate and apply diffs</strong> between snapshots for efficient incremental backups</li>
-<li><strong>Manage snapshot lifecycle</strong> with flexible expiry policies</li>
-<li><strong>Query snapshots</strong> to find specific files or directories</li>
+<li>Exporting snapshots to cloud storage for backup or archival purposes</li>
+<li>Restoring snapshots from cloud storage to a local directory</li>
+<li>Compression and decompression of snapshots during transfer</li>
+<li>Support for multiple cloud storage providers</li>
 </ul>
-<p>FlashFS is optimized for performance, with features like parallel processing, efficient binary serialization, content-based deduplication, and intelligent caching.</p>
-<h2 id="key-components">Key Components<a class="headerlink" href="#key-components" title="Permanent link">&para;</a></h2>
-<p>FlashFS consists of several modular components, each responsible for a specific aspect of the system:</p>
-<table>
-<thead>
-<tr>
-<th>Component</th>
-<th>Description</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><a href="cli/">CLI</a></td>
-<td>Command-line interface for interacting with FlashFS</td>
-</tr>
-<tr>
-<td><a href="walker/">Walker</a></td>
-<td>Traverses file systems to collect metadata</td>
-</tr>
-<tr>
-<td><a href="serializer/">Serializer</a></td>
-<td>Converts metadata to efficient binary format</td>
-</tr>
-<tr>
-<td><a href="schema/">Schema</a></td>
-<td>Defines data structures using FlatBuffers</td>
-</tr>
-<tr>
-<td><a href="storage/">Storage</a></td>
-<td>Manages storage and retrieval of snapshots and diffs</td>
-</tr>
-<tr>
-<td><a href="diff/">Diff Computation</a></td>
-<td>Computes and applies differences between snapshots</td>
-</tr>
-<tr>
-<td><a href="expiry-policy/">Expiry Policy</a></td>
-<td>Manages snapshot lifecycle and cleanup</td>
-</tr>
-</tbody>
-</table>
-<h2 id="getting-started">Getting Started<a class="headerlink" href="#getting-started" title="Permanent link">&para;</a></h2>
-<h3 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>go<span class="w"> </span>install<span class="w"> </span>github.com/TFMV/flashfs@latest
-</code></pre></div>
-<h3 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h3>
-<p>Create a snapshot:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>snapshot<span class="w"> </span>create<span class="w"> </span>--source<span class="w"> </span>/path/to/directory<span class="w"> </span>--output<span class="w"> </span>my-snapshot.snap
-</code></pre></div>
-<p>Compare two snapshots:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff
-</code></pre></div>
-<p>Apply a diff to generate a new snapshot:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>apply<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--diff<span class="w"> </span>changes.diff<span class="w"> </span>--output<span class="w"> </span>snapshot2.snap
-</code></pre></div>
-<p>List snapshots:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>snapshot<span class="w"> </span>list<span class="w"> </span>--dir<span class="w"> </span>/path/to/snapshots
-</code></pre></div>
-<h3 id="advanced-features">Advanced Features<a class="headerlink" href="#advanced-features" title="Permanent link">&para;</a></h3>
-<p>FlashFS includes advanced features like:</p>
+<h2 id="supported-storage-providers">Supported Storage Providers<a class="headerlink" href="#supported-storage-providers" title="Permanent link">&para;</a></h2>
+<p>FlashFS currently supports the following cloud storage providers:</p>
 <ul>
-<li><strong>Bloom filters</strong> for rapid change detection</li>
-<li><strong>Content-based deduplication</strong> using BLAKE3 hashing</li>
-<li><strong>Parallel processing</strong> for faster snapshot and diff operations</li>
-<li><strong>Configurable compression</strong> using zstd</li>
-<li><strong>Efficient caching</strong> for frequently accessed snapshots</li>
-<li><strong>Query capabilities</strong> for finding specific files in snapshots</li>
+<li><strong>Amazon S3</strong>: Native support for Amazon S3 storage</li>
+<li><strong>Google Cloud Storage (GCS)</strong>: Native support for Google Cloud Storage</li>
+<li><strong>S3-Compatible Storage</strong>: Support for MinIO, Ceph, and other S3-compatible storage services</li>
 </ul>
-<h2 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h2>
-<p>FlashFS is designed for high performance:</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>Cloud storage configuration is primarily done through environment variables:</p>
+<h3 id="amazon-s3-configuration">Amazon S3 Configuration<a class="headerlink" href="#amazon-s3-configuration" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Required</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">S3_ACCESS_KEY</span><span class="o">=</span>your-access-key
+<span class="nb">export</span><span class="w"> </span><span class="nv">S3_SECRET_KEY</span><span class="o">=</span>your-secret-key
+
+<span class="c1"># Optional</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">S3_ENDPOINT</span><span class="o">=</span>https://s3.amazonaws.com<span class="w">  </span><span class="c1"># Custom endpoint for S3-compatible storage</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">S3_REGION</span><span class="o">=</span>us-east-1<span class="w">                   </span><span class="c1"># AWS region (default: us-east-1)</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">S3_INSECURE</span><span class="o">=</span><span class="nb">false</span><span class="w">                     </span><span class="c1"># Use insecure connection (default: false)</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">S3_FORCE_PATH_STYLE</span><span class="o">=</span><span class="nb">false</span><span class="w">             </span><span class="c1"># Use path-style addressing (default: false)</span>
+</code></pre></div>
+<h3 id="google-cloud-storage-configuration">Google Cloud Storage Configuration<a class="headerlink" href="#google-cloud-storage-configuration" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Required for service account authentication</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">GOOGLE_APPLICATION_CREDENTIALS</span><span class="o">=</span>/path/to/service-account.json
+</code></pre></div>
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
+<h3 id="exporting-snapshots">Exporting Snapshots<a class="headerlink" href="#exporting-snapshots" title="Permanent link">&para;</a></h3>
+<p>The <code>export</code> command allows you to export snapshots to cloud storage:</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span><span class="nb">export</span><span class="w"> </span><span class="o">[</span>destination<span class="o">]</span><span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<p>Where <code>destination</code> is a URL in the format <code>s3://bucket-name/prefix/</code> or <code>gcs://bucket-name/prefix/</code>.</p>
+<h4 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h4>
+<p>Export a specific snapshot to S3:</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span><span class="nb">export</span><span class="w"> </span>s3://mybucket/flashfs-backups/<span class="w"> </span>--snapshot<span class="w"> </span>snapshot1.snap
+</code></pre></div>
+<p>Export all snapshots to GCS:</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span><span class="nb">export</span><span class="w"> </span>gcs://my-bucket-name/<span class="w"> </span>--all
+</code></pre></div>
+<p>Export to MinIO or other S3-compatible storage:</p>
+<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">S3_ENDPOINT</span><span class="o">=</span>https://minio.example.com
+<span class="nb">export</span><span class="w"> </span><span class="nv">S3_ACCESS_KEY</span><span class="o">=</span>your-access-key
+<span class="nb">export</span><span class="w"> </span><span class="nv">S3_SECRET_KEY</span><span class="o">=</span>your-secret-key
+<span class="nb">export</span><span class="w"> </span><span class="nv">S3_FORCE_PATH_STYLE</span><span class="o">=</span><span class="nb">true</span>
+flashfs<span class="w"> </span><span class="nb">export</span><span class="w"> </span>s3://mybucket/backups/<span class="w"> </span>--all
+</code></pre></div>
+<h4 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h4>
 <ul>
-<li><strong>Fast snapshot creation</strong> with parallel file system traversal</li>
-<li><strong>Efficient binary serialization</strong> using FlatBuffers</li>
-<li><strong>Minimal memory usage</strong> with streaming processing</li>
-<li><strong>Quick diff computation</strong> using Bloom filters for pre-filtering</li>
-<li><strong>Optimal compression</strong> with zstd for storage efficiency</li>
+<li><code>--dir string</code>: Directory containing snapshots (default "snapshots")</li>
+<li><code>--snapshot string</code>: Name of the snapshot to export</li>
+<li><code>--all</code>: Export all snapshots</li>
+<li><code>--compress</code>: Compress snapshots before uploading (default true)</li>
 </ul>
-<h2 id="use-cases">Use Cases<a class="headerlink" href="#use-cases" title="Permanent link">&para;</a></h2>
+<h3 id="restoring-snapshots">Restoring Snapshots<a class="headerlink" href="#restoring-snapshots" title="Permanent link">&para;</a></h3>
+<p>The <code>restore</code> command allows you to restore snapshots from cloud storage:</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>restore<span class="w"> </span><span class="o">[</span>source<span class="o">]</span><span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<p>Where <code>source</code> is a URL in the format <code>s3://bucket-name/prefix/</code> or <code>gcs://bucket-name/prefix/</code>.</p>
+<h4 id="examples_1">Examples<a class="headerlink" href="#examples_1" title="Permanent link">&para;</a></h4>
+<p>Restore a specific snapshot from S3:</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>restore<span class="w"> </span>s3://mybucket/flashfs-backups/<span class="w"> </span>--snapshot<span class="w"> </span>snapshot1.snap
+</code></pre></div>
+<p>Restore all snapshots from GCS:</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>restore<span class="w"> </span>gcs://my-bucket-name/<span class="w"> </span>--all
+</code></pre></div>
+<h4 id="flags_1">Flags<a class="headerlink" href="#flags_1" title="Permanent link">&para;</a></h4>
 <ul>
-<li><strong>Backup systems</strong>: Create incremental backups by storing only changes</li>
-<li><strong>File synchronization</strong>: Identify differences between systems efficiently</li>
-<li><strong>Change monitoring</strong>: Track file system changes over time</li>
-<li><strong>Deployment verification</strong>: Ensure consistency across deployed systems</li>
-<li><strong>Data migration</strong>: Track changes during migration processes</li>
+<li><code>--dir string</code>: Directory to restore snapshots to (default "snapshots")</li>
+<li><code>--snapshot string</code>: Name of the snapshot to restore</li>
+<li><code>--all</code>: Restore all snapshots</li>
+<li><code>--decompress</code>: Decompress snapshots after downloading (default true)</li>
 </ul>
-<h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
-<p>For detailed information on each component, please refer to the dedicated documentation pages linked in the <a href="#key-components">Key Components</a> section above.</p>
+<h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
+<p>The cloud storage integration is implemented using the <a href="https://github.com/thanos-io/objstore">Thanos Object Storage</a> library, which provides a unified interface for interacting with different cloud storage providers.</p>
+<h3 id="compression">Compression<a class="headerlink" href="#compression" title="Permanent link">&para;</a></h3>
+<p>Snapshots are compressed using the <a href="https://github.com/klauspost/compress/tree/master/zstd">Zstandard</a> compression algorithm before being uploaded to cloud storage. This reduces the amount of data transferred and the storage space required.</p>
+<h3 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h3>
+<p>The cloud storage integration includes robust error handling for common issues:</p>
+<ul>
+<li>Authentication errors (missing or invalid credentials)</li>
+<li>Network connectivity issues</li>
+<li>Permission issues</li>
+<li>Storage quota issues</li>
+</ul>
+<h3 id="performance-considerations">Performance Considerations<a class="headerlink" href="#performance-considerations" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Streaming Uploads/Downloads</strong>: Files are streamed to/from cloud storage to minimize memory usage</li>
+<li><strong>Compression</strong>: Zstandard compression provides a good balance between compression ratio and speed</li>
+<li><strong>Parallel Processing</strong>: Multiple snapshots can be exported/restored in parallel</li>
+</ul>
+<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
+<h3 id="common-issues">Common Issues<a class="headerlink" href="#common-issues" title="Permanent link">&para;</a></h3>
+<ol>
+<li><strong>Authentication Errors</strong>:</li>
+<li>Ensure that the required environment variables are set correctly</li>
+<li>
+<p>Check that the credentials have the necessary permissions</p>
+</li>
+<li>
+<p><strong>Network Issues</strong>:</p>
+</li>
+<li>Check your network connectivity</li>
+<li>
+<p>Verify that the endpoint URL is correct</p>
+</li>
+<li>
+<p><strong>Permission Issues</strong>:</p>
+</li>
+<li>
+<p>Ensure that the credentials have the necessary permissions to read/write to the bucket</p>
+</li>
+<li>
+<p><strong>Storage Quota Issues</strong>:</p>
+</li>
+<li>Check that you have sufficient storage quota in your cloud storage account</li>
+</ol>
+<h3 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h3>
+<p>The cloud storage integration includes detailed logging to help diagnose issues. You can view the logs by running the commands with the <code>--verbose</code> flag.</p>
 
 
 
@@ -749,10 +779,10 @@
     </div>
     
     
-    <script id="__config" type="application/json">{"base": ".", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "search.suggest", "search.highlight"], "search": "assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    <script id="__config" type="application/json">{"base": "..", "features": ["navigation.instant", "navigation.tracking", "navigation.expand", "navigation.indexes", "search.suggest", "search.highlight"], "search": "../assets/javascripts/workers/search.f8cc74c7.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
     
     
-      <script src="assets/javascripts/bundle.c8b220af.min.js"></script>
+      <script src="../assets/javascripts/bundle.c8b220af.min.js"></script>
       
     
   </body>
