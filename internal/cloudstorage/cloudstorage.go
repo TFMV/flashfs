@@ -32,9 +32,6 @@ const (
 
 	// Default chunk size for parallel uploads (5MB)
 	defaultChunkSize int64 = 5 * 1024 * 1024
-
-	// Default bucket name if not specified
-	defaultBucketName = "flashfs-backups"
 )
 
 // CompressionLevel represents the compression level for zstd
