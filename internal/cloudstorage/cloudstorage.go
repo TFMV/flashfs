@@ -62,6 +62,10 @@ type Config struct {
 	ChunkSize        int64
 	CompressionLevel CompressionLevel
 	CreateBucket     bool
+
+	// Logging configuration
+	LogSampleRate int  // Only log 1 in n operations (default: 100)
+	LogVerbose    bool // Whether to log detailed information (default: false)
 }
 
 // S3Config represents the configuration for S3 storage
@@ -74,12 +78,6 @@ type S3Config struct {
 	Insecure       bool
 	SignatureV2    bool
 	ForcePathStyle bool
-	// The following fields are not supported by the current Thanos objstore version
-	// and are kept here for reference only
-	// SSEEncryption   bool
-	// SSEKMSKeyID     string
-	// SSECustomerKey  string
-	// SSECustomerAlgo string
 }
 
 // GCSConfig represents the configuration for GCS storage
@@ -95,6 +93,14 @@ type CloudStorage struct {
 	chunkSize        int64
 	compressionLevel CompressionLevel
 	createBucket     bool
+	logSampleRate    int  // Only log 1 in logSampleRate operations
+	logVerbose       bool // Whether to log detailed information
+}
+
+// RangeGetter is an optional interface that a bucket may implement to support range requests.
+type RangeGetter interface {
+	GetRange(ctx context.Context, objectName string, off, length int64) (io.ReadCloser, error)
+	Size(ctx context.Context, objectName string) (int64, error)
 }
 
 // ParseDestination parses a destination URL and returns the storage type, bucket, and prefix
@@ -104,26 +110,18 @@ func ParseDestination(destination string) (StorageType, string, string, error) {
 		return "", "", "", errors.Wrap(err, "parse destination URL")
 	}
 
-	// Check if the URL has the correct format with scheme and host
 	if u.Scheme == "" || u.Host == "" {
 		return "", "", "", errors.New("invalid URL format, expected scheme://bucket/prefix")
 	}
 
-	// Get the storage type from the scheme
 	storageType := StorageType(u.Scheme)
-
-	// Validate the storage type
 	switch storageType {
 	case S3Storage, GCSStorage:
-		// Valid storage types
 	default:
 		return "", "", "", errors.Errorf("unsupported storage type: %s", storageType)
 	}
 
-	// Get the bucket from the host
 	bucket := u.Host
-
-	// Get the prefix from the path (remove leading slash)
 	prefix := strings.TrimPrefix(u.Path, "/")
 
 	return storageType, bucket, prefix, nil
@@ -147,6 +145,17 @@ func NewCloudStorage(ctx context.Context, config Config, logger log.Logger) (*Cl
 	compressionLevel := CompressionDefault
 	if config.CompressionLevel > 0 {
 		compressionLevel = config.CompressionLevel
+	}
+
+	// Set default logging values
+	logSampleRate := 100 // Default: log only 1 in 100 operations
+	if config.LogSampleRate > 0 {
+		logSampleRate = config.LogSampleRate
+	}
+
+	logVerbose := false // Default: don't log detailed information
+	if config.LogVerbose {
+		logVerbose = true
 	}
 
 	switch config.Type {
@@ -174,6 +183,8 @@ func NewCloudStorage(ctx context.Context, config Config, logger log.Logger) (*Cl
 		chunkSize:        chunkSize,
 		compressionLevel: compressionLevel,
 		createBucket:     config.CreateBucket,
+		logSampleRate:    logSampleRate,
+		logVerbose:       logVerbose,
 	}
 
 	// Check if bucket exists and create it if needed
@@ -186,9 +197,7 @@ func NewCloudStorage(ctx context.Context, config Config, logger log.Logger) (*Cl
 	return cs, nil
 }
 
-// createS3Bucket creates a new S3 bucket client
 func createS3Bucket(ctx context.Context, config S3Config, logger log.Logger) (objstore.Bucket, error) {
-	// Convert our S3Config to the YAML format expected by Thanos objstore
 	s3Config := map[string]interface{}{
 		"bucket":             config.Bucket,
 		"endpoint":           config.Endpoint,
@@ -203,52 +212,41 @@ func createS3Bucket(ctx context.Context, config S3Config, logger log.Logger) (ob
 		s3Config["bucket_lookup_type"] = "path"
 	}
 
-	// Create the full config with type
 	fullConfig := map[string]interface{}{
 		"type":   "S3",
 		"config": s3Config,
 	}
 
-	// Convert to YAML
 	confContentYaml, err := yaml.Marshal(fullConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal S3 config to YAML")
 	}
 
-	// Use the factory method to create the bucket
 	return client.NewBucket(logger, confContentYaml, "flashfs", nil)
 }
 
-// createGCSBucket creates a new GCS bucket client
 func createGCSBucket(ctx context.Context, config GCSConfig, logger log.Logger) (objstore.Bucket, error) {
-	// Convert our GCSConfig to the YAML format expected by Thanos objstore
 	gcsConfig := map[string]interface{}{
 		"bucket":          config.Bucket,
 		"service_account": config.ServiceAccount,
 	}
 
-	// Create the full config with type
 	fullConfig := map[string]interface{}{
 		"type":   "GCS",
 		"config": gcsConfig,
 	}
 
-	// Convert to YAML
 	confContentYaml, err := yaml.Marshal(fullConfig)
 	if err != nil {
 		return nil, errors.Wrap(err, "marshal GCS config to YAML")
 	}
 
-	// Use the factory method to create the bucket
 	return client.NewBucket(logger, confContentYaml, "flashfs", nil)
 }
 
-// ensureBucketExists checks if the bucket exists and creates it if it doesn't
 func (c *CloudStorage) ensureBucketExists(ctx context.Context) error {
-	// Check if the bucket exists by trying to list objects
 	exists, err := c.bucket.Exists(ctx, "")
 	if err != nil {
-		// If we get an access denied error, assume the bucket exists
 		if c.bucket.IsAccessDeniedErr(err) {
 			if err := level.Debug(c.logger).Log("msg", "Access denied when checking bucket existence, assuming bucket exists"); err != nil {
 				return errors.Wrap(err, "log message")
@@ -258,15 +256,10 @@ func (c *CloudStorage) ensureBucketExists(ctx context.Context) error {
 		return errors.Wrap(err, "check bucket existence")
 	}
 
-	// If the bucket doesn't exist and we're using S3, try to create it
 	if !exists && c.bucket.Provider() == objstore.S3 {
 		if err := level.Info(c.logger).Log("msg", "Bucket does not exist, attempting to create it", "bucket", c.bucket.Name()); err != nil {
 			return errors.Wrap(err, "log message")
 		}
-
-		// For S3, we would need to use the AWS SDK directly to create the bucket
-		// However, since we don't have direct access to the AWS SDK in this context,
-		// we'll log a warning and return an error
 		if err := level.Warn(c.logger).Log("msg", "Automatic bucket creation is not implemented for S3 in this version"); err != nil {
 			return errors.Wrap(err, "log message")
 		}
@@ -276,7 +269,6 @@ func (c *CloudStorage) ensureBucketExists(ctx context.Context) error {
 	return nil
 }
 
-// NewFromEnv creates a new cloud storage client from environment variables
 func NewFromEnv(ctx context.Context, storageType StorageType, bucket string, logger log.Logger) (*CloudStorage, error) {
 	if logger == nil {
 		logger = log.NewNopLogger()
@@ -308,7 +300,6 @@ func NewFromEnv(ctx context.Context, storageType StorageType, bucket string, log
 	return NewCloudStorage(ctx, config, logger)
 }
 
-// NewFromDestination creates a new cloud storage client from a destination URL
 func NewFromDestination(ctx context.Context, destination string, logger log.Logger) (*CloudStorage, error) {
 	storageType, bucket, _, err := ParseDestination(destination)
 	if err != nil {
@@ -316,6 +307,41 @@ func NewFromDestination(ctx context.Context, destination string, logger log.Logg
 	}
 
 	return NewFromEnv(ctx, storageType, bucket, logger)
+}
+
+// isIncompressible returns true for file types that typically don't benefit from compression.
+func isIncompressible(fileName string) bool {
+	ext := strings.ToLower(filepath.Ext(fileName))
+	incompressibleExts := map[string]bool{
+		".jpg":  true,
+		".jpeg": true,
+		".png":  true,
+		".gif":  true,
+		".zip":  true,
+		".gz":   true,
+		".mp4":  true,
+		".mp3":  true,
+		".avi":  true,
+	}
+	return incompressibleExts[ext]
+}
+
+// SetLogSampleRate sets the log sample rate (1 in n operations will be logged)
+func (c *CloudStorage) SetLogSampleRate(rate int) {
+	if rate < 1 {
+		rate = 1 // Always log at least 1 in 1 operations
+	}
+	c.logSampleRate = rate
+}
+
+// SetLogVerbose sets whether to log detailed information
+func (c *CloudStorage) SetLogVerbose(verbose bool) {
+	c.logVerbose = verbose
+}
+
+// shouldLog determines if this operation should be logged based on sampling
+func (c *CloudStorage) shouldLog(id int64) bool {
+	return id%int64(c.logSampleRate) == 0
 }
 
 // Upload uploads a file to cloud storage with enhanced features
@@ -331,13 +357,22 @@ func (c *CloudStorage) Upload(ctx context.Context, localPath, objectName string,
 		return errors.Wrap(err, "stat local file")
 	}
 
-	if err := level.Info(c.logger).Log("msg", "Starting upload", "file", localPath, "object", objectName, "size", fileInfo.Size()); err != nil {
-		return errors.Wrap(err, "log message")
+	// Use file size as a unique ID for log sampling
+	shouldLog := c.shouldLog(fileInfo.Size())
+
+	if shouldLog {
+		if err := level.Info(c.logger).Log("msg", "Starting upload", "file", localPath, "object", objectName, "size", fileInfo.Size()); err != nil {
+			return errors.Wrap(err, "log message")
+		}
+	} else if c.logVerbose {
+		if err := level.Debug(c.logger).Log("msg", "Starting upload", "file", localPath, "object", objectName, "size", fileInfo.Size()); err != nil {
+			return errors.Wrap(err, "log message")
+		}
 	}
 
 	var reader io.Reader = file
 
-	if compress {
+	if compress && !isIncompressible(localPath) {
 		// If compression is enabled, use a pipe to compress on-the-fly with the configured compression level
 		pr, pw := io.Pipe()
 
@@ -391,15 +426,29 @@ func (c *CloudStorage) Upload(ctx context.Context, localPath, objectName string,
 	}
 
 	duration := time.Since(startTime)
-	if err := level.Info(c.logger).Log(
-		"msg", "Upload complete",
-		"file", localPath,
-		"object", objectName,
-		"size", fileInfo.Size(),
-		"duration", duration,
-		"speed_mbps", float64(fileInfo.Size())/duration.Seconds()/1024/1024*8,
-	); err != nil {
-		return errors.Wrap(err, "log message")
+
+	if shouldLog {
+		if err := level.Info(c.logger).Log(
+			"msg", "Upload complete",
+			"file", localPath,
+			"object", objectName,
+			"size", fileInfo.Size(),
+			"duration", duration,
+			"speed_mbps", float64(fileInfo.Size())/duration.Seconds()/1024/1024*8,
+		); err != nil {
+			return errors.Wrap(err, "log message")
+		}
+	} else if c.logVerbose {
+		if err := level.Debug(c.logger).Log(
+			"msg", "Upload complete",
+			"file", localPath,
+			"object", objectName,
+			"size", fileInfo.Size(),
+			"duration", duration,
+			"speed_mbps", float64(fileInfo.Size())/duration.Seconds()/1024/1024*8,
+		); err != nil {
+			return errors.Wrap(err, "log message")
+		}
 	}
 
 	return nil
@@ -410,14 +459,16 @@ func (c *CloudStorage) uploadLargeFile(ctx context.Context, file *os.File, objec
 	// Calculate the number of chunks
 	numChunks := (fileSize + c.chunkSize - 1) / c.chunkSize
 
-	if err := level.Debug(c.logger).Log(
-		"msg", "Starting parallel upload",
-		"object", objectName,
-		"size", fileSize,
-		"chunks", numChunks,
-		"chunkSize", c.chunkSize,
-	); err != nil {
-		return errors.Wrap(err, "log message")
+	if c.shouldLog(fileSize) || c.logVerbose {
+		if err := level.Debug(c.logger).Log(
+			"msg", "Starting parallel upload",
+			"object", objectName,
+			"size", fileSize,
+			"chunks", numChunks,
+			"chunkSize", c.chunkSize,
+		); err != nil {
+			return errors.Wrap(err, "log message")
+		}
 	}
 
 	// Create a wait group to wait for all uploads to complete
@@ -458,11 +509,15 @@ func (c *CloudStorage) uploadLargeFile(ctx context.Context, file *os.File, objec
 			// Create a chunk name
 			chunkName := fmt.Sprintf("%s.part%d", objectName, chunkIndex)
 
-			// Upload the chunk
-			if err := level.Debug(c.logger).Log("msg", "Uploading chunk", "chunk", chunkIndex, "offset", offset, "size", size); err != nil {
-				errChan <- errors.Wrap(err, "log message")
-				return
+			// Upload the chunk - only log every 10th chunk or first/last to avoid flooding
+			shouldLogChunk := chunkIndex == 0 || chunkIndex == numChunks-1 || chunkIndex%10 == 0
+			if shouldLogChunk && c.logVerbose {
+				if err := level.Debug(c.logger).Log("msg", "Uploading chunk", "chunk", chunkIndex, "offset", offset, "size", size); err != nil {
+					errChan <- errors.Wrap(err, "log message")
+					return
+				}
 			}
+
 			err = c.bucket.Upload(ctx, chunkName, bytes.NewReader(buffer))
 			if err != nil {
 				errChan <- errors.Wrap(err, "upload chunk")
@@ -513,6 +568,22 @@ func (c *CloudStorage) Download(ctx context.Context, objectName, localPath strin
 	}
 	defer file.Close()
 
+	// Get the object size for log sampling
+	var objectSize int64
+	if rangeGetter, ok := c.bucket.(RangeGetter); ok {
+		objectSize, err = rangeGetter.Size(ctx, objectName)
+		if err != nil {
+			// If we can't get the size, just use a hash of the object name for sampling
+			objectSize = int64(len(objectName))
+		}
+	} else {
+		// If we can't get the size, just use a hash of the object name for sampling
+		objectSize = int64(len(objectName))
+	}
+
+	// Determine if we should log this operation
+	shouldLog := c.shouldLog(objectSize)
+
 	// Get the object
 	reader, err := c.bucket.Get(ctx, objectName)
 	if err != nil {
@@ -520,8 +591,14 @@ func (c *CloudStorage) Download(ctx context.Context, objectName, localPath strin
 	}
 	defer reader.Close()
 
-	if err := level.Info(c.logger).Log("msg", "Starting download", "object", objectName, "file", localPath); err != nil {
-		return errors.Wrap(err, "log message")
+	if shouldLog {
+		if err := level.Info(c.logger).Log("msg", "Starting download", "object", objectName, "file", localPath); err != nil {
+			return errors.Wrap(err, "log message")
+		}
+	} else if c.logVerbose {
+		if err := level.Debug(c.logger).Log("msg", "Starting download", "object", objectName, "file", localPath); err != nil {
+			return errors.Wrap(err, "log message")
+		}
 	}
 
 	startTime := time.Now()
@@ -555,15 +632,28 @@ func (c *CloudStorage) Download(ctx context.Context, objectName, localPath strin
 		return errors.Wrap(err, "stat local file")
 	}
 
-	if err := level.Info(c.logger).Log(
-		"msg", "Download complete",
-		"object", objectName,
-		"file", localPath,
-		"size", fileInfo.Size(),
-		"duration", duration,
-		"speed_mbps", float64(fileInfo.Size())/duration.Seconds()/1024/1024*8,
-	); err != nil {
-		return errors.Wrap(err, "log message")
+	if shouldLog {
+		if err := level.Info(c.logger).Log(
+			"msg", "Download complete",
+			"object", objectName,
+			"file", localPath,
+			"size", fileInfo.Size(),
+			"duration", duration,
+			"speed_mbps", float64(fileInfo.Size())/duration.Seconds()/1024/1024*8,
+		); err != nil {
+			return errors.Wrap(err, "log message")
+		}
+	} else if c.logVerbose {
+		if err := level.Debug(c.logger).Log(
+			"msg", "Download complete",
+			"object", objectName,
+			"file", localPath,
+			"size", fileInfo.Size(),
+			"duration", duration,
+			"speed_mbps", float64(fileInfo.Size())/duration.Seconds()/1024/1024*8,
+		); err != nil {
+			return errors.Wrap(err, "log message")
+		}
 	}
 
 	return nil
@@ -572,7 +662,6 @@ func (c *CloudStorage) Download(ctx context.Context, objectName, localPath strin
 // List lists objects in cloud storage with the given prefix
 func (c *CloudStorage) List(ctx context.Context, prefix string) ([]string, error) {
 	var objects []string
-
 	err := c.bucket.Iter(ctx, prefix, func(name string) error {
 		objects = append(objects, name)
 		return nil
@@ -580,7 +669,6 @@ func (c *CloudStorage) List(ctx context.Context, prefix string) ([]string, error
 	if err != nil {
 		return nil, errors.Wrap(err, "list objects")
 	}
-
 	return objects, nil
 }
 
