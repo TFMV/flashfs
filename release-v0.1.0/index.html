@@ -13,10 +13,6 @@
       
       
       
-        <link rel="prev" href="../walker/">
-      
-      
-        <link rel="next" href="../schema/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -24,7 +20,7 @@
     
     
       
-        <title>Serializer - FlashFS Documentation</title>
+        <title>FlashFS v0.1.0 Release Notes - FlashFS Documentation</title>
       
     
     
@@ -109,7 +105,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Serializer
+              FlashFS v0.1.0 Release Notes
             
           </span>
         </div>
@@ -246,10 +242,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -266,11 +260,13 @@
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
@@ -285,7 +281,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             Components
@@ -340,17 +336,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../serializer/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -360,7 +349,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -547,117 +535,92 @@
   
 
 
-<h1 id="serializer">Serializer<a class="headerlink" href="#serializer" title="Permanent link">&para;</a></h1>
-<p>The Serializer component in FlashFS is responsible for efficiently converting file system metadata into a compact binary format for storage and transmission. It plays a crucial role in ensuring that snapshots are both space-efficient and quick to process.</p>
+<h1 id="flashfs-v010-release-notes">FlashFS v0.1.0 Release Notes<a class="headerlink" href="#flashfs-v010-release-notes" title="Permanent link">&para;</a></h1>
+<p>FlashFS is a high-performance file system snapshot and diff tool designed for efficiently tracking and managing changes across file systems over time.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>The Serializer uses <a href="https://google.github.io/flatbuffers/">FlatBuffers</a> as its serialization framework, which provides several advantages:</p>
+<p>FlashFS v0.1.0 provides a robust foundation for creating, comparing, and managing file system snapshots with a focus on performance and efficiency. This release introduces the core functionality and architecture that will serve as the basis for future enhancements.</p>
+<h2 id="key-features">Key Features<a class="headerlink" href="#key-features" title="Permanent link">&para;</a></h2>
+<h3 id="snapshot-management">Snapshot Management<a class="headerlink" href="#snapshot-management" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Zero-copy deserialization</strong>: Data can be accessed without unpacking/parsing</li>
-<li><strong>Cross-platform compatibility</strong>: Consistent representation across different systems</li>
-<li><strong>Compact binary format</strong>: Minimizes storage requirements</li>
-<li><strong>Schema evolution</strong>: Allows for backward compatibility as the schema evolves</li>
+<li><strong>Fast Snapshot Creation</strong>: Efficiently capture the state of your file system with parallel processing</li>
+<li><strong>Content-Based Deduplication</strong>: Use BLAKE3 hashing for accurate file identification</li>
+<li><strong>Configurable Compression</strong>: Balance speed and size with zstd compression</li>
+<li><strong>Intelligent Caching</strong>: Optimize performance for frequently accessed snapshots</li>
 </ul>
-<h2 id="schema-definition">Schema Definition<a class="headerlink" href="#schema-definition" title="Permanent link">&para;</a></h2>
-<p>The serialization schema is defined in FlatBuffers IDL (Interface Definition Language) and includes the following main components:</p>
-<div class="highlight"><pre><span></span><code>namespace flashfs;
-
-table FileEntry {
-  path: string;
-  size: long;
-  mtime: long;
-  isDir: bool;
-  permissions: uint;
-  hash: [ubyte];
-}
-
-table Snapshot {
-  entries: [FileEntry];
-}
-
-root_type Snapshot;
+<h3 id="diff-computation">Diff Computation<a class="headerlink" href="#diff-computation" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Structured Diff Format</strong>: Clear representation of added, modified, and deleted files</li>
+<li><strong>Bloom Filter Pre-filtering</strong>: Quickly identify potential changes between snapshots</li>
+<li><strong>Parallel Processing</strong>: Distribute comparison work across multiple CPU cores</li>
+<li><strong>Path Filtering</strong>: Focus comparisons on specific directories or file patterns</li>
+</ul>
+<h3 id="snapshot-lifecycle-management">Snapshot Lifecycle Management<a class="headerlink" href="#snapshot-lifecycle-management" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Flexible Expiry Policies</strong>: Configure retention based on time periods and snapshot counts</li>
+<li><strong>Time-Based Retention</strong>: Keep hourly, daily, weekly, monthly, and yearly snapshots</li>
+<li><strong>Count-Based Retention</strong>: Limit the total number of snapshots</li>
+<li><strong>Age-Based Cleanup</strong>: Automatically remove snapshots older than a specified age</li>
+</ul>
+<h3 id="query-capabilities">Query Capabilities<a class="headerlink" href="#query-capabilities" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Path Pattern Matching</strong>: Find files matching specific patterns</li>
+<li><strong>Metadata Filtering</strong>: Filter by modification time, size, and file type</li>
+<li><strong>Multiple Output Formats</strong>: Export results as text, JSON, or CSV</li>
+</ul>
+<h2 id="technical-highlights">Technical Highlights<a class="headerlink" href="#technical-highlights" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Efficient Binary Serialization</strong>: Using FlatBuffers for compact representation and fast access</li>
+<li><strong>Minimal Memory Usage</strong>: Streaming processing for handling large file systems</li>
+<li><strong>Thread Safety</strong>: Concurrent operations with proper synchronization</li>
+<li><strong>Comprehensive CLI</strong>: Full-featured command-line interface built with Cobra</li>
+</ul>
+<h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
+<p>Comprehensive documentation is available at <a href="https://TFMV.github.io/flashfs/">https://TFMV.github.io/flashfs/</a>, including:</p>
+<ul>
+<li>Component overviews</li>
+<li>Command references</li>
+<li>Usage examples</li>
+<li>Implementation details</li>
+<li>Performance considerations</li>
+</ul>
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code>go<span class="w"> </span>install<span class="w"> </span>github.com/TFMV/flashfs@latest
 </code></pre></div>
-<p>This schema defines:</p>
-<ul>
-<li>A <code>FileEntry</code> table representing metadata for a single file or directory</li>
-<li>A <code>Snapshot</code> table containing a list of file entries</li>
-<li>The root type as <code>Snapshot</code></li>
-</ul>
-<h2 id="core-functions">Core Functions<a class="headerlink" href="#core-functions" title="Permanent link">&para;</a></h2>
-<h3 id="serializesnapshot">SerializeSnapshot<a class="headerlink" href="#serializesnapshot" title="Permanent link">&para;</a></h3>
-<p>The <code>SerializeSnapshot</code> function converts a list of file system entries into a binary representation:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">SerializeSnapshot</span><span class="p">(</span><span class="nx">entries</span><span class="w"> </span><span class="p">[]</span><span class="nx">walker</span><span class="p">.</span><span class="nx">SnapshotEntry</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
-</code></pre></div>
-<p>This function:</p>
-<ol>
-<li>Creates a new FlatBuffers builder</li>
-<li>Converts each entry into a FlatBuffers <code>FileEntry</code></li>
-<li>Builds a vector of all file entries</li>
-<li>Creates a <code>Snapshot</code> containing the entries vector</li>
-<li>Returns the serialized binary data</li>
-</ol>
-<h3 id="deserializesnapshot">DeserializeSnapshot<a class="headerlink" href="#deserializesnapshot" title="Permanent link">&para;</a></h3>
-<p>The <code>DeserializeSnapshot</code> function converts binary data back into a usable format:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">DeserializeSnapshot</span><span class="p">(</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">flashfs</span><span class="p">.</span><span class="nx">Snapshot</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
-</code></pre></div>
-<p>This function:</p>
-<ol>
-<li>Verifies the binary data</li>
-<li>Creates a FlatBuffers accessor for the data</li>
-<li>Returns a reference to the snapshot without copying the data</li>
-</ol>
-<h2 id="performance-considerations">Performance Considerations<a class="headerlink" href="#performance-considerations" title="Permanent link">&para;</a></h2>
-<p>The Serializer is designed for high performance:</p>
-<ul>
-<li><strong>Memory Efficiency</strong>: Minimizes memory allocations during serialization</li>
-<li><strong>Processing Speed</strong>: Optimized for fast serialization and deserialization</li>
-<li><strong>Size Optimization</strong>: Creates compact representations of file metadata</li>
-</ul>
-<h2 id="integration-with-other-components">Integration with Other Components<a class="headerlink" href="#integration-with-other-components" title="Permanent link">&para;</a></h2>
-<p>The Serializer integrates with:</p>
-<ul>
-<li><strong>Walker</strong>: Receives file metadata from the Walker component</li>
-<li><strong>Storage</strong>: Provides serialized data to the Storage component for compression and persistence</li>
-<li><strong>Diff</strong>: Enables efficient comparison by providing a consistent representation format</li>
-</ul>
 <h2 id="example-usage">Example Usage<a class="headerlink" href="#example-usage" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="c1">// Get file metadata from the Walker</span>
-<span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">Walk</span><span class="p">(</span><span class="s">&quot;/path/to/directory&quot;</span><span class="p">)</span>
-<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
-<span class="p">}</span>
-
-<span class="c1">// Serialize the entries</span>
-<span class="nx">serializedData</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">SerializeSnapshot</span><span class="p">(</span><span class="nx">entries</span><span class="p">)</span>
-<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
-<span class="p">}</span>
-
-<span class="c1">// The serialized data can now be compressed and stored</span>
+<p>Create a snapshot:</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class="w"> </span>/home/user/documents<span class="w"> </span>--output<span class="w"> </span>backup-20240601.snap
 </code></pre></div>
-<h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
-<p>The Serializer implementation handles several edge cases:</p>
+<p>Compute differences:</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>backup-20240601.snap<span class="w"> </span>--target<span class="w"> </span>backup-20240602.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff
+</code></pre></div>
+<p>Apply a diff:</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>apply<span class="w"> </span>--base<span class="w"> </span>backup-20240601.snap<span class="w"> </span>--diff<span class="w"> </span>changes.diff<span class="w"> </span>--output<span class="w"> </span>backup-20240602.snap
+</code></pre></div>
+<p>Set an expiry policy:</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">set</span><span class="w"> </span>--keep-hourly<span class="w"> </span><span class="m">24</span><span class="w"> </span>--keep-daily<span class="w"> </span><span class="m">7</span><span class="w"> </span>--keep-weekly<span class="w"> </span><span class="m">4</span><span class="w"> </span>--keep-monthly<span class="w"> </span><span class="m">12</span>
+</code></pre></div>
+<h2 id="known-limitations">Known Limitations<a class="headerlink" href="#known-limitations" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Large Files</strong>: Properly represents files of any size using 64-bit integers</li>
-<li><strong>Unicode Paths</strong>: Correctly handles international characters in file paths</li>
-<li><strong>Empty Directories</strong>: Preserves empty directories in the snapshot</li>
-<li><strong>Missing Hashes</strong>: Gracefully handles entries without content hashes</li>
-<li><strong>Schema Versioning</strong>: Maintains compatibility across different versions</li>
+<li>Limited support for special file types (devices, sockets, etc.)</li>
+<li>No built-in encryption for snapshots and diffs</li>
+<li>No remote storage backend integration</li>
 </ul>
-<h2 id="advanced-usage">Advanced Usage<a class="headerlink" href="#advanced-usage" title="Permanent link">&para;</a></h2>
-<h3 id="custom-serialization">Custom Serialization<a class="headerlink" href="#custom-serialization" title="Permanent link">&para;</a></h3>
-<p>For specialized use cases, the Serializer can be extended:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Create a custom serializer with specific options</span>
-<span class="nx">options</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">Options</span><span class="p">{</span>
-<span class="w">    </span><span class="nx">IncludeHashes</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">    </span><span class="nx">CompactPaths</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<span class="p">}</span>
-<span class="nx">serializedData</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">SerializeSnapshotWithOptions</span><span class="p">(</span><span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="p">)</span>
-</code></pre></div>
-<h3 id="partial-deserialization">Partial Deserialization<a class="headerlink" href="#partial-deserialization" title="Permanent link">&para;</a></h3>
-<p>For efficiency when only specific data is needed:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Access only the paths without deserializing everything</span>
-<span class="nx">paths</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">ExtractPathsFromSnapshot</span><span class="p">(</span><span class="nx">serializedData</span><span class="p">)</span>
-</code></pre></div>
+<h2 id="future-roadmap">Future Roadmap<a class="headerlink" href="#future-roadmap" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Encryption support for secure storage</li>
+<li>Remote storage backends (S3, GCS, etc.)</li>
+<li>GUI for visualization and management</li>
+<li>Improved handling of special file types</li>
+<li>Snapshot verification and integrity checking</li>
+</ul>
+<h2 id="contributors">Contributors<a class="headerlink" href="#contributors" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Thomas F McGeehan V (Lead Developer)</li>
+</ul>
+<h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
+<p>FlashFS is released under the MIT License.</p>
+<hr />
+<p>We welcome feedback, bug reports, and contributions! Please file issues on our GitHub repository.</p>
 
 
 
