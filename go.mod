@@ -7,7 +7,6 @@ require (
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-kit/log v0.2.1
 	github.com/google/flatbuffers v25.2.10+incompatible
-	github.com/karrick/godirwalk v1.17.0
 	github.com/klauspost/compress v1.18.0
 	github.com/pkg/errors v0.9.1
 	github.com/spaolacci/murmur3 v1.1.0

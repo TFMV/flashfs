@@ -29,6 +29,19 @@ func TestRealWorldBenchmark(t *testing.T) {
 		t.Skip("Skipping real-world benchmark. Set FLASHFS_RUN_REAL_BENCHMARK=true to enable")
 	}
 
+	// Add a timeout to prevent the test from hanging indefinitely
+	timeout := 5 * time.Minute
+	if deadline, ok := t.Deadline(); ok {
+		// If the test has a deadline, use that instead
+		timeout = time.Until(deadline) - 10*time.Second // Leave 10 seconds for cleanup
+	}
+
+	// Create a timer to cancel the test if it takes too long
+	timer := time.AfterFunc(timeout, func() {
+		t.Fatalf("TestRealWorldBenchmark timed out after %v", timeout)
+	})
+	defer timer.Stop()
+
 	// Get the home directory path
 	homeDir := os.Getenv("HOME")
 	if homeDir == "" && runtime.GOOS == "windows" {
