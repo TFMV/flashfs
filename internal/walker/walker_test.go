@@ -49,8 +49,9 @@ func TestWalk(t *testing.T) {
 	entries, err := Walk(tempDir)
 	require.NoError(t, err)
 
-	// Verify we have the expected number of entries (dirs + files)
-	require.Equal(t, len(dirs)+len(files), len(entries))
+	// Verify we have the expected number of entries (dirs + files + root directory)
+	// The +1 is for the root directory itself, which is now included in the results
+	require.Equal(t, len(dirs)+len(files)+1, len(entries))
 
 	// Test WalkWithContext function
 	ctx := context.Background()
@@ -110,13 +111,16 @@ func BenchmarkStdlibWalkDir(b *testing.B) {
 
 	// Count the number of files and directories
 	var fileCount int
-	filepath.WalkDir(tempDir, func(path string, d os.DirEntry, err error) error {
+	err = filepath.WalkDir(tempDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
 		fileCount++
 		return nil
 	})
+	if err != nil {
+		b.Fatalf("Error counting files: %v", err)
+	}
 	fmt.Printf("Total files and directories: %d\n", fileCount)
 
 	b.ResetTimer()
