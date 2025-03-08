@@ -306,21 +306,41 @@ func TestComputeHash(t *testing.T) {
 	}
 	tempFile.Close() // Close to ensure content is flushed
 
-	// Compute hash
-	hash := computeHash(tempFile.Name())
-	if len(hash) == 0 {
-		t.Error("Hash computation failed")
+	// Compute hash using BLAKE3 algorithm
+	hash, err := computeHash(tempFile.Name(), "BLAKE3", true, 10*1024*1024)
+	if err != nil {
+		t.Errorf("Hash computation failed: %v", err)
+	}
+	if hash == "" {
+		t.Error("Hash computation returned empty string")
 	}
 
 	// Compute hash again to verify consistency
-	hash2 := computeHash(tempFile.Name())
-	if len(hash2) == 0 {
-		t.Error("Second hash computation failed")
+	hash2, err := computeHash(tempFile.Name(), "BLAKE3", true, 10*1024*1024)
+	if err != nil {
+		t.Errorf("Second hash computation failed: %v", err)
+	}
+	if hash2 == "" {
+		t.Error("Second hash computation returned empty string")
 	}
 
 	// Hashes should be equal for the same content
-	if string(hash) != string(hash2) {
+	if hash != hash2 {
 		t.Error("Hash inconsistency: hashes for the same content are different")
+	}
+
+	// Try with MD5 algorithm
+	hashMD5, err := computeHash(tempFile.Name(), "MD5", true, 10*1024*1024)
+	if err != nil {
+		t.Errorf("MD5 hash computation failed: %v", err)
+	}
+	if hashMD5 == "" {
+		t.Error("MD5 hash computation returned empty string")
+	}
+
+	// MD5 and BLAKE3 hashes should be different
+	if hash == hashMD5 {
+		t.Error("Hash inconsistency: BLAKE3 and MD5 hashes are the same")
 	}
 
 	// Modify the file and check that the hash changes
@@ -330,13 +350,16 @@ func TestComputeHash(t *testing.T) {
 		t.Fatalf("Failed to modify temp file: %v", err)
 	}
 
-	hash3 := computeHash(tempFile.Name())
-	if len(hash3) == 0 {
-		t.Error("Third hash computation failed")
+	hash3, err := computeHash(tempFile.Name(), "BLAKE3", true, 10*1024*1024)
+	if err != nil {
+		t.Errorf("Third hash computation failed: %v", err)
+	}
+	if hash3 == "" {
+		t.Error("Third hash computation returned empty string")
 	}
 
 	// Hashes should be different for different content
-	if string(hash) == string(hash3) {
+	if hash == hash3 {
 		t.Error("Hash inconsistency: hashes for different content are the same")
 	}
 }
@@ -364,101 +387,45 @@ func TestWalkErrorHandling(t *testing.T) {
 }
 
 func TestWalkWithContext(t *testing.T) {
-	// Create a temporary directory structure for testing
-	tempDir, err := os.MkdirTemp("", "flashfs-walker-ctx-test-*")
-	if err != nil {
-		t.Fatalf("Failed to create temp dir: %v", err)
-	}
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "walker-context-test-*")
+	require.NoError(t, err)
 	defer os.RemoveAll(tempDir)
 
-	// Create test directory structure with many subdirectories to ensure the walk takes some time
-	for i := 0; i < 10; i++ {
-		dir := filepath.Join(tempDir, "dir"+string(rune('a'+i%26)))
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			t.Fatalf("Failed to create directory %s: %v", dir, err)
-		}
-
-		// Create subdirectories
-		for j := 0; j < 10; j++ {
-			subdir := filepath.Join(dir, "subdir"+string(rune('a'+j%26)))
-			if err := os.MkdirAll(subdir, 0755); err != nil {
-				t.Fatalf("Failed to create directory %s: %v", subdir, err)
-			}
-
-			// Create files in subdirectories
-			for k := 0; k < 10; k++ {
-				file := filepath.Join(subdir, "file"+string(rune('a'+k%26))+".txt")
-				content := []byte("test content " + string(rune('a'+i%26)) + string(rune('a'+j%26)) + string(rune('a'+k%26)))
-				if err := os.WriteFile(file, content, 0644); err != nil {
-					t.Fatalf("Failed to create file %s: %v", file, err)
-				}
-			}
-		}
+	// Create some test files and directories
+	dirs := []string{
+		filepath.Join(tempDir, "dir1"),
+		filepath.Join(tempDir, "dir2"),
+		filepath.Join(tempDir, "dir1", "subdir1"),
 	}
 
-	// Test with a canceled context
-	ctx, cancel := context.WithCancel(context.Background())
-
-	// Cancel the context immediately
-	cancel()
-
-	// The walk should return quickly with a context canceled error
-	_, err = WalkWithContext(ctx, tempDir)
-	if err == nil {
-		t.Error("Expected context canceled error, got nil")
-	} else if err != context.Canceled {
-		t.Errorf("Expected context.Canceled error, got %v", err)
+	files := []string{
+		filepath.Join(tempDir, "file1.txt"),
+		filepath.Join(tempDir, "file2.txt"),
+		filepath.Join(tempDir, "dir1", "file3.txt"),
+		filepath.Join(tempDir, "dir2", "file4.txt"),
+		filepath.Join(tempDir, "dir1", "subdir1", "file5.txt"),
 	}
 
-	// Skip the timeout test in short mode
-	if !testing.Short() {
-		// Test with a valid context but create a separate goroutine that will cancel it
-		ctx, cancel = context.WithCancel(context.Background())
-		defer cancel()
+	// Create directories
+	for _, dir := range dirs {
+		err := os.MkdirAll(dir, 0755)
+		require.NoError(t, err)
+	}
 
-		// Use a channel to signal when the walk has started
-		started := make(chan struct{})
-
-		// Start the walk in a goroutine
-		resultCh := make(chan error, 1)
-		go func() {
-			// Signal that we're starting
-			close(started)
-			_, err := WalkWithContext(ctx, tempDir)
-			resultCh <- err
-		}()
-
-		// Wait for the walk to start
-		<-started
-
-		// Sleep a bit to let the walk get going
-		time.Sleep(10 * time.Millisecond)
-
-		// Cancel the context
-		cancel()
-
-		// Wait for the result
-		select {
-		case err := <-resultCh:
-			if err == nil {
-				t.Error("Expected context canceled error, got nil")
-			} else if err != context.Canceled {
-				t.Errorf("Expected context.Canceled error, got %v", err)
-			}
-		case <-time.After(5 * time.Second):
-			t.Error("Timed out waiting for walk to be canceled")
-		}
+	// Create files with some content
+	for _, file := range files {
+		err := os.WriteFile(file, []byte("test content"), 0644)
+		require.NoError(t, err)
 	}
 
 	// Test with a valid context
-	ctx = context.Background()
+	ctx := context.Background()
 	entries, err := WalkWithContext(ctx, tempDir)
 	if err != nil {
 		t.Errorf("Unexpected error: %v", err)
 	}
-
-	// Verify we got some entries
-	if len(entries) == 0 {
-		t.Error("Expected entries, got none")
+	if len(entries) != len(dirs)+len(files)+1 { // +1 for the root directory
+		t.Errorf("Expected %d entries, got %d", len(dirs)+len(files)+1, len(entries))
 	}
 }

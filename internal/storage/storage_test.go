@@ -2,6 +2,7 @@ package storage
 
 import (
 	"bytes"
+	"encoding/hex"
 	"os"
 	"path/filepath"
 	"testing"
@@ -200,14 +201,14 @@ func TestDiffOperations(t *testing.T) {
 
 	// Create two test snapshots with different content
 	snapshot1 := createTestSnapshot(t, []walker.SnapshotEntry{
-		{Path: "/test/file1.txt", Size: 100, ModTime: 1000, IsDir: false, Permissions: 0644, Hash: []byte{1, 2, 3, 4}},
-		{Path: "/test/file2.txt", Size: 200, ModTime: 2000, IsDir: false, Permissions: 0644, Hash: []byte{5, 6, 7, 8}},
+		{Path: "/test/file1.txt", Size: 100, ModTime: time.Unix(1000, 0), IsDir: false, Permissions: 0644, Hash: "01020304"},
+		{Path: "/test/file2.txt", Size: 200, ModTime: time.Unix(2000, 0), IsDir: false, Permissions: 0644, Hash: "05060708"},
 	})
 
 	snapshot2 := createTestSnapshot(t, []walker.SnapshotEntry{
-		{Path: "/test/file1.txt", Size: 100, ModTime: 1000, IsDir: false, Permissions: 0644, Hash: []byte{1, 2, 3, 4}},     // Unchanged
-		{Path: "/test/file2.txt", Size: 300, ModTime: 3000, IsDir: false, Permissions: 0644, Hash: []byte{9, 10, 11, 12}},  // Modified
-		{Path: "/test/file3.txt", Size: 400, ModTime: 4000, IsDir: false, Permissions: 0644, Hash: []byte{13, 14, 15, 16}}, // Added
+		{Path: "/test/file1.txt", Size: 100, ModTime: time.Unix(1000, 0), IsDir: false, Permissions: 0644, Hash: "01020304"}, // Unchanged
+		{Path: "/test/file2.txt", Size: 300, ModTime: time.Unix(3000, 0), IsDir: false, Permissions: 0644, Hash: "090a0b0c"}, // Modified
+		{Path: "/test/file3.txt", Size: 400, ModTime: time.Unix(4000, 0), IsDir: false, Permissions: 0644, Hash: "0d0e0f10"}, // Added
 	})
 
 	// Write the snapshots
@@ -344,8 +345,8 @@ func TestBloomFilter(t *testing.T) {
 
 		// Create a test snapshot
 		snapshot := createTestSnapshot(t, []walker.SnapshotEntry{
-			{Path: "/test/file1.txt", Size: 100, ModTime: 1000, IsDir: false, Permissions: 0644, Hash: []byte{1, 2, 3, 4}},
-			{Path: "/test/file2.txt", Size: 200, ModTime: 2000, IsDir: false, Permissions: 0644, Hash: []byte{5, 6, 7, 8}},
+			{Path: "/test/file1.txt", Size: 100, ModTime: time.Unix(1000, 0), IsDir: false, Permissions: 0644, Hash: "01020304"},
+			{Path: "/test/file2.txt", Size: 200, ModTime: time.Unix(2000, 0), IsDir: false, Permissions: 0644, Hash: "05060708"},
 		})
 
 		// Write the snapshot
@@ -377,10 +378,10 @@ func TestQuerySnapshot(t *testing.T) {
 
 	// Create a test snapshot with various entries
 	snapshot := createTestSnapshot(t, []walker.SnapshotEntry{
-		{Path: "/test/file1.txt", Size: 100, ModTime: 1000, IsDir: false, Permissions: 0644, Hash: []byte{1, 2, 3, 4}},
-		{Path: "/test/file2.txt", Size: 200, ModTime: 2000, IsDir: false, Permissions: 0644, Hash: []byte{5, 6, 7, 8}},
-		{Path: "/test/dir1", Size: 0, ModTime: 3000, IsDir: true, Permissions: 0755, Hash: nil},
-		{Path: "/test/dir1/file3.txt", Size: 300, ModTime: 4000, IsDir: false, Permissions: 0644, Hash: []byte{9, 10, 11, 12}},
+		{Path: "/test/file1.txt", Size: 100, ModTime: time.Unix(1000, 0), IsDir: false, Permissions: 0644, Hash: "01020304"},
+		{Path: "/test/file2.txt", Size: 200, ModTime: time.Unix(2000, 0), IsDir: false, Permissions: 0644, Hash: "05060708"},
+		{Path: "/test/dir1", Size: 0, ModTime: time.Unix(3000, 0), IsDir: true, Permissions: 0755, Hash: ""},
+		{Path: "/test/dir1/file3.txt", Size: 300, ModTime: time.Unix(4000, 0), IsDir: false, Permissions: 0644, Hash: "090a0b0c"},
 	})
 
 	// Write the snapshot
@@ -440,17 +441,23 @@ func createTestSnapshot(t *testing.T, entries []walker.SnapshotEntry) []byte {
 		pathOffset := builder.CreateString(entry.Path)
 
 		var hashOffset flatbuffers.UOffsetT
-		if len(entry.Hash) > 0 {
-			hashOffset = builder.CreateByteVector(entry.Hash)
+		if entry.Hash != "" {
+			// Convert hex string to byte slice
+			hashBytes, err := hex.DecodeString(entry.Hash)
+			if err == nil && len(hashBytes) > 0 {
+				hashOffset = builder.CreateByteVector(hashBytes)
+			}
 		}
 
 		flashfs.FileEntryStart(builder)
 		flashfs.FileEntryAddPath(builder, pathOffset)
 		flashfs.FileEntryAddSize(builder, entry.Size)
-		flashfs.FileEntryAddMtime(builder, entry.ModTime)
+		// Convert time.Time to Unix timestamp (int64)
+		flashfs.FileEntryAddMtime(builder, entry.ModTime.Unix())
 		flashfs.FileEntryAddIsDir(builder, entry.IsDir)
-		flashfs.FileEntryAddPermissions(builder, entry.Permissions)
-		if len(entry.Hash) > 0 {
+		// Convert fs.FileMode to uint32
+		flashfs.FileEntryAddPermissions(builder, uint32(entry.Permissions))
+		if entry.Hash != "" {
 			flashfs.FileEntryAddHash(builder, hashOffset)
 		}
 		fileEntryOffsets[i] = flashfs.FileEntryEnd(builder)
@@ -466,7 +473,134 @@ func createTestSnapshot(t *testing.T, entries []walker.SnapshotEntry) []byte {
 	flashfs.SnapshotStart(builder)
 	flashfs.SnapshotAddEntries(builder, entriesVector)
 	snapshot := flashfs.SnapshotEnd(builder)
-
 	builder.Finish(snapshot)
 	return builder.FinishedBytes()
+}
+
+func TestComputeDiff(t *testing.T) {
+	t.Parallel()
+
+	// Create a temporary directory for testing
+	tempDir, err := os.MkdirTemp("", "flashfs-diff-test-*")
+	require.NoError(t, err)
+	defer os.RemoveAll(tempDir)
+
+	// Create a new snapshot store
+	store, err := NewSnapshotStore(tempDir)
+	require.NoError(t, err)
+	defer store.Close()
+
+	// Create two test snapshots with different content
+	snapshot1 := createTestSnapshot(t, []walker.SnapshotEntry{
+		{Path: "/test/file1.txt", Size: 100, ModTime: time.Unix(1000, 0), IsDir: false, Permissions: 0644, Hash: "01020304"},
+		{Path: "/test/file2.txt", Size: 200, ModTime: time.Unix(2000, 0), IsDir: false, Permissions: 0644, Hash: "05060708"},
+	})
+
+	snapshot2 := createTestSnapshot(t, []walker.SnapshotEntry{
+		{Path: "/test/file1.txt", Size: 100, ModTime: time.Unix(1000, 0), IsDir: false, Permissions: 0644, Hash: "01020304"}, // Unchanged
+		{Path: "/test/file2.txt", Size: 300, ModTime: time.Unix(3000, 0), IsDir: false, Permissions: 0644, Hash: "090a0b0c"}, // Modified
+		{Path: "/test/file3.txt", Size: 400, ModTime: time.Unix(4000, 0), IsDir: false, Permissions: 0644, Hash: "0d0e0f10"}, // Added
+	})
+
+	// Write the snapshots
+	require.NoError(t, store.WriteSnapshot("snapshot1", snapshot1))
+	require.NoError(t, store.WriteSnapshot("snapshot2", snapshot2))
+
+	t.Run("ComputeDiff", func(t *testing.T) {
+		// Compute the diff
+		diff, err := store.ComputeDiff("snapshot1", "snapshot2")
+		require.NoError(t, err)
+
+		// Verify the diff contains the expected changes
+		diffObj := flashfs.GetRootAsDiff(diff, 0)
+		assert.Equal(t, 2, diffObj.EntriesLength()) // Modified + Added
+
+		// Check each entry in the diff
+		var entry flashfs.DiffEntry
+		foundModified := false
+		foundAdded := false
+
+		for i := 0; i < diffObj.EntriesLength(); i++ {
+			diffObj.Entries(&entry, i)
+			path := string(entry.Path())
+
+			if path == "/test/file2.txt" {
+				foundModified = true
+				assert.Equal(t, int8(1), entry.Type())         // 1 = modified
+				assert.Equal(t, int64(200), entry.OldSize())   // Original size
+				assert.Equal(t, int64(300), entry.NewSize())   // New size
+				assert.Equal(t, int64(2000), entry.OldMtime()) // Original mtime
+				assert.Equal(t, int64(3000), entry.NewMtime()) // New mtime
+			} else if path == "/test/file3.txt" {
+				foundAdded = true
+				assert.Equal(t, int8(0), entry.Type()) // 0 = added
+				assert.Equal(t, int64(400), entry.NewSize())
+				assert.Equal(t, int64(4000), entry.NewMtime())
+			}
+		}
+
+		assert.True(t, foundModified, "Modified file should be in diff")
+		assert.True(t, foundAdded, "Added file should be in diff")
+	})
+
+	t.Run("StoreDiff", func(t *testing.T) {
+		// Store the diff
+		err := store.StoreDiff("snapshot1", "snapshot2")
+		require.NoError(t, err)
+
+		// Verify the diff file exists
+		diffPath := filepath.Join(tempDir, "snapshot1_snapshot2"+DiffFileExt)
+		_, err = os.Stat(diffPath)
+		require.NoError(t, err)
+	})
+
+	t.Run("ApplyDiff", func(t *testing.T) {
+		// First store the diff
+		require.NoError(t, store.StoreDiff("snapshot1", "snapshot2"))
+
+		// Apply the diff
+		result, err := store.ApplyDiff("snapshot1", "snapshot1_snapshot2")
+		require.NoError(t, err)
+
+		// Verify the result matches snapshot2
+		snapshot2Data, err := store.ReadSnapshot("snapshot2")
+		require.NoError(t, err)
+
+		// Compare the snapshots by checking their entries
+		resultSnapshot := flashfs.GetRootAsSnapshot(result, 0)
+		expectedSnapshot := flashfs.GetRootAsSnapshot(snapshot2Data, 0)
+
+		assert.Equal(t, expectedSnapshot.EntriesLength(), resultSnapshot.EntriesLength())
+
+		// Create maps of entries for easier comparison
+		resultEntries := make(map[string]*flashfs.FileEntry)
+		expectedEntries := make(map[string]*flashfs.FileEntry)
+
+		var entry flashfs.FileEntry
+		for i := 0; i < resultSnapshot.EntriesLength(); i++ {
+			resultSnapshot.Entries(&entry, i)
+			entryCopy := new(flashfs.FileEntry)
+			*entryCopy = entry
+			resultEntries[string(entry.Path())] = entryCopy
+		}
+
+		for i := 0; i < expectedSnapshot.EntriesLength(); i++ {
+			expectedSnapshot.Entries(&entry, i)
+			entryCopy := new(flashfs.FileEntry)
+			*entryCopy = entry
+			expectedEntries[string(entry.Path())] = entryCopy
+		}
+
+		// Verify all expected entries are in the result
+		for path, expectedEntry := range expectedEntries {
+			resultEntry, exists := resultEntries[path]
+			assert.True(t, exists, "Path %s should exist in result", path)
+			if exists {
+				assert.Equal(t, expectedEntry.Size(), resultEntry.Size())
+				assert.Equal(t, expectedEntry.Mtime(), resultEntry.Mtime())
+				assert.Equal(t, expectedEntry.IsDir(), resultEntry.IsDir())
+				assert.Equal(t, expectedEntry.Permissions(), resultEntry.Permissions())
+			}
+		}
+	})
 }
