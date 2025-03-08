@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"math/rand"
 	"os"
 	"runtime"
 	"testing"
@@ -256,44 +257,31 @@ func TestEqual(t *testing.T) {
 		b    string
 		want bool
 	}{
-		{"equal", "abc", "abc", true},
-		{"not equal", "abc", "def", false},
-		{"empty strings", "", "", true},
+		{
+			name: "equal",
+			a:    "abc123",
+			b:    "abc123",
+			want: true,
+		},
+		{
+			name: "not equal",
+			a:    "abc123",
+			b:    "def456",
+			want: false,
+		},
+		{
+			name: "empty strings",
+			a:    "",
+			b:    "",
+			want: true,
+		},
 	}
-
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := Equal(tt.a, tt.b); got != tt.want {
 				t.Errorf("Equal() = %v, want %v", got, tt.want)
 			}
 		})
-	}
-}
-
-func createTestFiles(t *testing.T, numFiles int) []string {
-	t.Helper()
-	paths := make([]string, numFiles)
-	for i := 0; i < numFiles; i++ {
-		tmpfile, err := os.CreateTemp("", fmt.Sprintf("hash_test_concurrent_%d", i))
-		if err != nil {
-			t.Fatal(err)
-		}
-		paths[i] = tmpfile.Name()
-		defer tmpfile.Close()
-		testData := []byte(fmt.Sprintf("This is test file %d.", i))
-
-		if _, err := tmpfile.Write(testData); err != nil {
-		}
-		tmpfile.Seek(0, 0) // Reset file pointer
-
-	}
-	return paths
-}
-
-func removeTestFiles(t *testing.T, paths []string) {
-	t.Helper()
-	for _, path := range paths {
-		os.Remove(path)
 	}
 }
 
@@ -831,4 +819,103 @@ func TestPartialFile(t *testing.T) {
 			}
 		}
 	})
+}
+
+func BenchmarkLargeFileHashing(b *testing.B) {
+	// Create a temporary large file
+	tmpfile, err := os.CreateTemp("", "hash_benchmark_large")
+	if err != nil {
+		b.Fatal(err)
+	}
+	defer os.Remove(tmpfile.Name())
+	defer tmpfile.Close()
+
+	// Write 100MB of data to the file
+	fileSize := int64(100 * 1024 * 1024) // 100MB
+
+	// Generate random data
+	data := make([]byte, 1024*1024) // 1MB chunks
+	for i := 0; i < 100; i++ {
+		// Fill with random data
+		for j := range data {
+			data[j] = byte(rand.Intn(256))
+		}
+
+		if _, err := tmpfile.Write(data); err != nil {
+			b.Fatal(err)
+		}
+	}
+
+	if err := tmpfile.Sync(); err != nil {
+		b.Fatal(err)
+	}
+
+	// Reset file pointer
+	if _, err := tmpfile.Seek(0, 0); err != nil {
+		b.Fatal(err)
+	}
+
+	// Benchmark full file hashing
+	b.Run("FullFile", func(b *testing.B) {
+		opts := DefaultOptions()
+		opts.UsePartialHashing = false
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			result := File(tmpfile.Name(), opts)
+			if result.Error != nil {
+				b.Fatal(result.Error)
+			}
+			// Use the hash to prevent compiler optimizations
+			b.SetBytes(fileSize)
+			runtime.KeepAlive(result.Hash)
+		}
+	})
+
+	// Benchmark partial file hashing
+	b.Run("PartialFile", func(b *testing.B) {
+		opts := DefaultOptions()
+		opts.UsePartialHashing = true
+
+		b.ResetTimer()
+		for i := 0; i < b.N; i++ {
+			result := File(tmpfile.Name(), opts)
+			if result.Error != nil {
+				b.Fatal(result.Error)
+			}
+			// Use the hash to prevent compiler optimizations
+			b.SetBytes(fileSize)
+			runtime.KeepAlive(result.Hash)
+		}
+	})
+
+	// Benchmark different algorithms with partial hashing
+	algorithms := []struct {
+		name string
+		alg  Algorithm
+	}{
+		{"BLAKE3", BLAKE3},
+		{"MD5", MD5},
+		{"SHA1", SHA1},
+		{"SHA256", SHA256},
+	}
+
+	for _, alg := range algorithms {
+		b.Run(fmt.Sprintf("PartialFile_%s", alg.name), func(b *testing.B) {
+			opts := DefaultOptions()
+			opts.UsePartialHashing = true
+			opts.Algorithm = alg.alg
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				result := File(tmpfile.Name(), opts)
+				if result.Error != nil {
+					b.Fatal(result.Error)
+				}
+				// Use the hash to prevent compiler optimizations
+				b.SetBytes(fileSize)
+				runtime.KeepAlive(result.Hash)
+			}
+		})
+	}
 }

@@ -568,19 +568,6 @@ func CompareSnapshotsDetailedWithOptions(ctx context.Context, oldFile, newFile s
 	return diffs, nil
 }
 
-// bytesEqual compares two byte slices for equality
-func bytesEqual(a, b []byte) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
 // hashesEqual compares two hash strings for equality
 func hashesEqual(a, b string) bool {
 	return hash.Equal(a, b)
