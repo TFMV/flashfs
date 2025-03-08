@@ -24,7 +24,9 @@ func TestFile(t *testing.T) {
 	if _, err := tmpfile.Write(testData); err != nil {
 		t.Fatal(err)
 	}
-	tmpfile.Seek(0, 0) // Reset file pointer
+	if _, err := tmpfile.Seek(0, 0); err != nil { // Reset file pointer
+		t.Fatal(err)
+	}
 
 	// Expected Hashes
 	expectedBlake3 := "477487010f611fc4cef99d0ca765636c70d84f743fb059dc5683458ad9603d54"
