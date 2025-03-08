@@ -4,13 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"math"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"sync"
+	"time"
 
+	"github.com/TFMV/flashfs/internal/hash"
 	"github.com/TFMV/flashfs/internal/walker"
 	flashfs "github.com/TFMV/flashfs/schema/flashfs"
 )
@@ -204,26 +207,29 @@ func loadSnapshot(ctx context.Context, filename string) (map[string]walker.Snaps
 		}
 
 		// Safely get other fields
-		var size, modTime int64
+		var size int64
+		var modTime time.Time
 		var isDir bool
-		var permissions uint32
+		var permissions fs.FileMode
 		var hashBytes []byte
 
 		func() {
 			defer func() {
 				if r := recover(); r != nil {
-					// Use defaults on error
+					// Handle any panics from flatbuffers
 					size = 0
-					modTime = 0
+					modTime = time.Time{}
 					isDir = false
 					permissions = 0
 					hashBytes = nil
 				}
 			}()
 			size = fe.Size()
-			modTime = fe.Mtime()
+			// Convert Unix timestamp to time.Time
+			modTime = time.Unix(fe.Mtime(), 0)
 			isDir = fe.IsDir()
-			permissions = fe.Permissions()
+			// Convert uint32 to fs.FileMode
+			permissions = fs.FileMode(fe.Permissions())
 			hashBytes = fe.HashBytes()
 		}()
 
@@ -236,7 +242,8 @@ func loadSnapshot(ctx context.Context, filename string) (map[string]walker.Snaps
 		}
 
 		if len(hashBytes) > 0 {
-			entry.Hash = hashBytes
+			// Convert byte slice to hex string
+			entry.Hash = fmt.Sprintf("%x", hashBytes)
 		}
 
 		result[entry.Path] = entry
@@ -420,31 +427,18 @@ func CompareSnapshotsDetailedWithOptions(ctx context.Context, oldFile, newFile s
 						// Check if the file was modified
 						if oldEntry.Size != newEntry.Size ||
 							oldEntry.ModTime != newEntry.ModTime ||
-							oldEntry.Permissions != newEntry.Permissions {
+							oldEntry.Permissions != newEntry.Permissions ||
+							(options.UseHashDiff && !hashesEqual(oldEntry.Hash, newEntry.Hash)) {
 							diff = DiffEntry{
 								Type:           "Modified",
 								Path:           path,
 								OldSize:        oldEntry.Size,
 								NewSize:        newEntry.Size,
-								OldModTime:     oldEntry.ModTime,
-								NewModTime:     newEntry.ModTime,
-								OldPermissions: oldEntry.Permissions,
-								NewPermissions: newEntry.Permissions,
-							}
-						} else if options.UseHashDiff && len(oldEntry.Hash) > 0 && len(newEntry.Hash) > 0 {
-							// Compare hashes if size and mtime are the same
-							if !bytesEqual(oldEntry.Hash, newEntry.Hash) {
-								diff = DiffEntry{
-									Type:           "Modified",
-									Path:           path,
-									OldSize:        oldEntry.Size,
-									NewSize:        newEntry.Size,
-									OldModTime:     oldEntry.ModTime,
-									NewModTime:     newEntry.ModTime,
-									OldPermissions: oldEntry.Permissions,
-									NewPermissions: newEntry.Permissions,
-									HashDiff:       true,
-								}
+								OldModTime:     oldEntry.ModTime.Unix(),
+								NewModTime:     newEntry.ModTime.Unix(),
+								OldPermissions: uint32(oldEntry.Permissions),
+								NewPermissions: uint32(newEntry.Permissions),
+								HashDiff:       !hashesEqual(oldEntry.Hash, newEntry.Hash),
 							}
 						}
 					} else if oldExists {
@@ -453,8 +447,8 @@ func CompareSnapshotsDetailedWithOptions(ctx context.Context, oldFile, newFile s
 							Type:           "Deleted",
 							Path:           path,
 							OldSize:        oldEntry.Size,
-							OldModTime:     oldEntry.ModTime,
-							OldPermissions: oldEntry.Permissions,
+							OldModTime:     oldEntry.ModTime.Unix(),
+							OldPermissions: uint32(oldEntry.Permissions),
 						}
 					} else if newExists {
 						// File is new
@@ -462,8 +456,8 @@ func CompareSnapshotsDetailedWithOptions(ctx context.Context, oldFile, newFile s
 							Type:           "New",
 							Path:           path,
 							NewSize:        newEntry.Size,
-							NewModTime:     newEntry.ModTime,
-							NewPermissions: newEntry.Permissions,
+							NewModTime:     newEntry.ModTime.Unix(),
+							NewPermissions: uint32(newEntry.Permissions),
 						}
 					}
 
@@ -521,32 +515,19 @@ func CompareSnapshotsDetailedWithOptions(ctx context.Context, oldFile, newFile s
 				// Check if the file was modified
 				if oldEntry.Size != newEntry.Size ||
 					oldEntry.ModTime != newEntry.ModTime ||
-					oldEntry.Permissions != newEntry.Permissions {
+					oldEntry.Permissions != newEntry.Permissions ||
+					(options.UseHashDiff && !hashesEqual(oldEntry.Hash, newEntry.Hash)) {
 					diffs = append(diffs, DiffEntry{
 						Type:           "Modified",
 						Path:           path,
 						OldSize:        oldEntry.Size,
 						NewSize:        newEntry.Size,
-						OldModTime:     oldEntry.ModTime,
-						NewModTime:     newEntry.ModTime,
-						OldPermissions: oldEntry.Permissions,
-						NewPermissions: newEntry.Permissions,
+						OldModTime:     oldEntry.ModTime.Unix(),
+						NewModTime:     newEntry.ModTime.Unix(),
+						OldPermissions: uint32(oldEntry.Permissions),
+						NewPermissions: uint32(newEntry.Permissions),
+						HashDiff:       !hashesEqual(oldEntry.Hash, newEntry.Hash),
 					})
-				} else if options.UseHashDiff && len(oldEntry.Hash) > 0 && len(newEntry.Hash) > 0 {
-					// Compare hashes if size and mtime are the same
-					if !bytesEqual(oldEntry.Hash, newEntry.Hash) {
-						diffs = append(diffs, DiffEntry{
-							Type:           "Modified",
-							Path:           path,
-							OldSize:        oldEntry.Size,
-							NewSize:        newEntry.Size,
-							OldModTime:     oldEntry.ModTime,
-							NewModTime:     newEntry.ModTime,
-							OldPermissions: oldEntry.Permissions,
-							NewPermissions: newEntry.Permissions,
-							HashDiff:       true,
-						})
-					}
 				}
 			} else {
 				// File is new
@@ -554,8 +535,8 @@ func CompareSnapshotsDetailedWithOptions(ctx context.Context, oldFile, newFile s
 					Type:           "New",
 					Path:           path,
 					NewSize:        newEntry.Size,
-					NewModTime:     newEntry.ModTime,
-					NewPermissions: newEntry.Permissions,
+					NewModTime:     newEntry.ModTime.Unix(),
+					NewPermissions: uint32(newEntry.Permissions),
 				})
 			}
 		}
@@ -577,8 +558,8 @@ func CompareSnapshotsDetailedWithOptions(ctx context.Context, oldFile, newFile s
 					Type:           "Deleted",
 					Path:           path,
 					OldSize:        oldEntry.Size,
-					OldModTime:     oldEntry.ModTime,
-					OldPermissions: oldEntry.Permissions,
+					OldModTime:     oldEntry.ModTime.Unix(),
+					OldPermissions: uint32(oldEntry.Permissions),
 				})
 			}
 		}
@@ -598,6 +579,11 @@ func bytesEqual(a, b []byte) bool {
 		}
 	}
 	return true
+}
+
+// hashesEqual compares two hash strings for equality
+func hashesEqual(a, b string) bool {
+	return hash.Equal(a, b)
 }
 
 // BloomFilter is a simple bloom filter implementation

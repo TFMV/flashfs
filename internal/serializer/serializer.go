@@ -1,6 +1,8 @@
 package serializer
 
 import (
+	"encoding/hex"
+
 	"github.com/TFMV/flashfs/internal/walker"
 	schema "github.com/TFMV/flashfs/schema/flashfs"
 
@@ -13,18 +15,26 @@ func SerializeSnapshot(entries []walker.SnapshotEntry) ([]byte, error) {
 	fileEntryOffsets := make([]flatbuffers.UOffsetT, len(entries))
 	for i, entry := range entries {
 		pathOffset := builder.CreateString(entry.Path)
+
+		// Convert string hash to byte slice if present
 		var hashOffset flatbuffers.UOffsetT
-		if len(entry.Hash) > 0 {
-			hashOffset = builder.CreateByteVector(entry.Hash)
+		if entry.Hash != "" {
+			// Convert hex string to byte slice
+			hashBytes, err := hex.DecodeString(entry.Hash)
+			if err == nil && len(hashBytes) > 0 {
+				hashOffset = builder.CreateByteVector(hashBytes)
+			}
 		}
 
 		schema.FileEntryStart(builder)
 		schema.FileEntryAddPath(builder, pathOffset)
 		schema.FileEntryAddSize(builder, entry.Size)
-		schema.FileEntryAddMtime(builder, entry.ModTime)
+		// Convert time.Time to Unix timestamp (int64)
+		schema.FileEntryAddMtime(builder, entry.ModTime.Unix())
 		schema.FileEntryAddIsDir(builder, entry.IsDir)
-		schema.FileEntryAddPermissions(builder, entry.Permissions)
-		if len(entry.Hash) > 0 {
+		// Convert fs.FileMode to uint32
+		schema.FileEntryAddPermissions(builder, uint32(entry.Permissions))
+		if entry.Hash != "" {
 			schema.FileEntryAddHash(builder, hashOffset)
 		}
 		fileEntryOffsets[i] = schema.FileEntryEnd(builder)

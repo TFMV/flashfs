@@ -49,17 +49,15 @@ func createTestSnapshot(t *testing.T, entries []walker.SnapshotEntry) string {
 func TestCompareSnapshots(t *testing.T) {
 	// Create test entries
 	oldEntries := []walker.SnapshotEntry{
-		{Path: "file1.txt", Size: 100, ModTime: 1000, IsDir: false, Permissions: 0644},
-		{Path: "file2.txt", Size: 200, ModTime: 2000, IsDir: false, Permissions: 0644},
-		{Path: "dir1", Size: 0, ModTime: 3000, IsDir: true, Permissions: 0755},
-		{Path: "dir1/file3.txt", Size: 300, ModTime: 4000, IsDir: false, Permissions: 0644},
+		{Path: "file1.txt", Size: 100, ModTime: time.Unix(1000, 0), IsDir: false, Permissions: 0644, Hash: "0102"},
+		{Path: "file2.txt", Size: 200, ModTime: time.Unix(2000, 0), IsDir: false, Permissions: 0644, Hash: "0304"},
+		{Path: "file3.txt", Size: 300, ModTime: time.Unix(3000, 0), IsDir: false, Permissions: 0644, Hash: "0506"},
 	}
 
 	newEntries := []walker.SnapshotEntry{
-		{Path: "file1.txt", Size: 100, ModTime: 1000, IsDir: false, Permissions: 0644},      // Unchanged
-		{Path: "file2.txt", Size: 250, ModTime: 2500, IsDir: false, Permissions: 0644},      // Modified
-		{Path: "dir1", Size: 0, ModTime: 3000, IsDir: true, Permissions: 0755},              // Unchanged
-		{Path: "dir1/file4.txt", Size: 400, ModTime: 5000, IsDir: false, Permissions: 0644}, // New
+		{Path: "file1.txt", Size: 100, ModTime: time.Unix(1000, 0), IsDir: false, Permissions: 0644, Hash: "0102"}, // Unchanged
+		{Path: "file2.txt", Size: 250, ModTime: time.Unix(2500, 0), IsDir: false, Permissions: 0644, Hash: "0708"}, // Modified
+		{Path: "file4.txt", Size: 400, ModTime: time.Unix(4000, 0), IsDir: false, Permissions: 0644, Hash: "090a"}, // Added
 		// file3.txt is deleted
 	}
 
@@ -90,9 +88,9 @@ func TestCompareSnapshots(t *testing.T) {
 		for _, diff := range diffs {
 			if strings.Contains(diff, "Modified: file2.txt") {
 				hasModified = true
-			} else if strings.Contains(diff, "New: dir1/file4.txt") {
+			} else if strings.Contains(diff, "New: file4.txt") {
 				hasNew = true
-			} else if strings.Contains(diff, "Deleted: dir1/file3.txt") {
+			} else if strings.Contains(diff, "Deleted: file3.txt") {
 				hasDeleted = true
 			}
 		}
@@ -170,17 +168,17 @@ func TestCompareSnapshots(t *testing.T) {
 func TestCompareSnapshotsDetailed(t *testing.T) {
 	// Create test entries with hashes
 	oldEntries := []walker.SnapshotEntry{
-		{Path: "file1.txt", Size: 100, ModTime: 1000, IsDir: false, Permissions: 0644, Hash: []byte{1, 2, 3}},
-		{Path: "file2.txt", Size: 200, ModTime: 2000, IsDir: false, Permissions: 0644, Hash: []byte{4, 5, 6}},
-		{Path: "file3.txt", Size: 300, ModTime: 3000, IsDir: false, Permissions: 0644, Hash: []byte{7, 8, 9}},
-		{Path: "dir1/file4.txt", Size: 400, ModTime: 4000, IsDir: false, Permissions: 0644, Hash: []byte{10, 11, 12}},
+		{Path: "file1.txt", Size: 100, ModTime: time.Unix(1000, 0), IsDir: false, Permissions: 0644, Hash: "010203"},
+		{Path: "file2.txt", Size: 200, ModTime: time.Unix(2000, 0), IsDir: false, Permissions: 0644, Hash: "040506"},
+		{Path: "file3.txt", Size: 300, ModTime: time.Unix(3000, 0), IsDir: false, Permissions: 0644, Hash: "070809"},
+		{Path: "dir1/file4.txt", Size: 400, ModTime: time.Unix(4000, 0), IsDir: false, Permissions: 0644, Hash: "101112"},
 	}
 
 	newEntries := []walker.SnapshotEntry{
-		{Path: "file1.txt", Size: 100, ModTime: 1000, IsDir: false, Permissions: 0644, Hash: []byte{1, 2, 3}},         // Unchanged
-		{Path: "file2.txt", Size: 250, ModTime: 2500, IsDir: false, Permissions: 0644, Hash: []byte{4, 5, 7}},         // Modified size, time, hash
-		{Path: "file3.txt", Size: 300, ModTime: 3000, IsDir: false, Permissions: 0644, Hash: []byte{7, 8, 10}},        // Modified hash only
-		{Path: "dir1/file5.txt", Size: 500, ModTime: 5000, IsDir: false, Permissions: 0644, Hash: []byte{13, 14, 15}}, // New
+		{Path: "file1.txt", Size: 100, ModTime: time.Unix(1000, 0), IsDir: false, Permissions: 0644, Hash: "010203"},      // Unchanged
+		{Path: "file2.txt", Size: 250, ModTime: time.Unix(2500, 0), IsDir: false, Permissions: 0644, Hash: "040507"},      // Modified size, time, hash
+		{Path: "file3.txt", Size: 300, ModTime: time.Unix(3000, 0), IsDir: false, Permissions: 0644, Hash: "070810"},      // Modified hash only
+		{Path: "dir1/file5.txt", Size: 500, ModTime: time.Unix(5000, 0), IsDir: false, Permissions: 0644, Hash: "131415"}, // New
 		// file4.txt is deleted
 	}
 

@@ -1,7 +1,9 @@
 package serializer
 
 import (
+	"encoding/hex"
 	"testing"
+	"time"
 
 	"github.com/TFMV/flashfs/internal/walker"
 	"github.com/TFMV/flashfs/schema/flashfs"
@@ -24,10 +26,10 @@ func TestSerializeSnapshot(t *testing.T) {
 				{
 					Path:        "/test/file.txt",
 					Size:        1024,
-					ModTime:     1609459200, // 2021-01-01 00:00:00
+					ModTime:     time.Unix(1609459200, 0), // 2021-01-01 00:00:00
 					IsDir:       false,
 					Permissions: 0644,
-					Hash:        []byte{1, 2, 3, 4},
+					Hash:        "01020304",
 				},
 			},
 		},
@@ -37,18 +39,26 @@ func TestSerializeSnapshot(t *testing.T) {
 				{
 					Path:        "/test/file1.txt",
 					Size:        1024,
-					ModTime:     1609459200, // 2021-01-01 00:00:00
+					ModTime:     time.Unix(1609459200, 0), // 2021-01-01 00:00:00
 					IsDir:       false,
 					Permissions: 0644,
-					Hash:        []byte{1, 2, 3, 4},
+					Hash:        "01020304",
 				},
 				{
 					Path:        "/test/file2.txt",
 					Size:        2048,
-					ModTime:     1609545600, // 2021-01-02 00:00:00
+					ModTime:     time.Unix(1609545600, 0), // 2021-01-02 00:00:00
 					IsDir:       false,
 					Permissions: 0644,
-					Hash:        []byte{5, 6, 7, 8},
+					Hash:        "05060708",
+				},
+				{
+					Path:        "/test/dir1",
+					Size:        0,
+					ModTime:     time.Unix(1609632000, 0), // 2021-01-03 00:00:00
+					IsDir:       true,
+					Permissions: 0755,
+					Hash:        "",
 				},
 			},
 		},
@@ -58,34 +68,34 @@ func TestSerializeSnapshot(t *testing.T) {
 				{
 					Path:        "/test",
 					Size:        0,
-					ModTime:     1609459200, // 2021-01-01 00:00:00
+					ModTime:     time.Unix(1609459200, 0), // 2021-01-01 00:00:00
 					IsDir:       true,
 					Permissions: 0755,
-					Hash:        nil,
+					Hash:        "",
 				},
 				{
 					Path:        "/test/dir",
 					Size:        0,
-					ModTime:     1609459200, // 2021-01-01 00:00:00
+					ModTime:     time.Unix(1609459200, 0), // 2021-01-01 00:00:00
 					IsDir:       true,
 					Permissions: 0755,
-					Hash:        nil,
+					Hash:        "",
 				},
 				{
 					Path:        "/test/file.txt",
 					Size:        1024,
-					ModTime:     1609459200, // 2021-01-01 00:00:00
+					ModTime:     time.Unix(1609459200, 0), // 2021-01-01 00:00:00
 					IsDir:       false,
 					Permissions: 0644,
-					Hash:        []byte{1, 2, 3, 4},
+					Hash:        "01020304",
 				},
 				{
 					Path:        "/test/dir/file.txt",
 					Size:        2048,
-					ModTime:     1609545600, // 2021-01-02 00:00:00
+					ModTime:     time.Unix(1609545600, 0), // 2021-01-02 00:00:00
 					IsDir:       false,
 					Permissions: 0644,
-					Hash:        []byte{5, 6, 7, 8},
+					Hash:        "05060708",
 				},
 			},
 		},
@@ -95,18 +105,18 @@ func TestSerializeSnapshot(t *testing.T) {
 				{
 					Path:        "/test/file1.txt",
 					Size:        1024,
-					ModTime:     1609459200, // 2021-01-01 00:00:00
+					ModTime:     time.Unix(1609459200, 0), // 2021-01-01 00:00:00
 					IsDir:       false,
 					Permissions: 0644,
-					Hash:        []byte{1, 2, 3, 4},
+					Hash:        "01020304",
 				},
 				{
 					Path:        "/test/file2.txt",
 					Size:        2048,
-					ModTime:     1609545600, // 2021-01-02 00:00:00
+					ModTime:     time.Unix(1609545600, 0), // 2021-01-02 00:00:00
 					IsDir:       false,
 					Permissions: 0644,
-					Hash:        nil,
+					Hash:        "05060708",
 				},
 			},
 		},
@@ -147,41 +157,46 @@ func TestSerializeSnapshot(t *testing.T) {
 					t.Errorf("Entry %d: expected size %d, got %d", i, expected.Size, entry.Size())
 				}
 
-				if entry.Mtime() != expected.ModTime {
-					t.Errorf("Entry %d: expected mtime %d, got %d", i, expected.ModTime, entry.Mtime())
+				if entry.Mtime() != expected.ModTime.Unix() {
+					t.Errorf("Entry %d: expected mtime %d, got %d", i, expected.ModTime.Unix(), entry.Mtime())
 				}
 
 				if entry.IsDir() != expected.IsDir {
 					t.Errorf("Entry %d: expected isDir %v, got %v", i, expected.IsDir, entry.IsDir())
 				}
 
-				if entry.Permissions() != expected.Permissions {
+				if entry.Permissions() != uint32(expected.Permissions) {
 					t.Errorf("Entry %d: expected permissions %o, got %o", i, expected.Permissions, entry.Permissions())
 				}
 
 				// Check hash if it exists
 				hashBytes := entry.HashBytes()
-				if len(expected.Hash) > 0 {
+				if expected.Hash != "" {
 					if len(hashBytes) == 0 {
 						t.Errorf("Entry %d: expected hash, got none", i)
 					} else {
-						// Compare hash bytes
-						if len(hashBytes) != len(expected.Hash) {
-							t.Errorf("Entry %d: hash length mismatch, expected %d, got %d",
-								i, len(expected.Hash), len(hashBytes))
+						// Convert expected hash string to bytes for comparison
+						expectedHashBytes, err := hex.DecodeString(expected.Hash)
+						if err != nil {
+							t.Errorf("Entry %d: failed to decode expected hash: %v", i, err)
 						} else {
-							for j := 0; j < len(hashBytes); j++ {
-								if hashBytes[j] != expected.Hash[j] {
-									t.Errorf("Entry %d: hash mismatch at byte %d", i, j)
-									break
+							// Compare hash bytes
+							if len(hashBytes) != len(expectedHashBytes) {
+								t.Errorf("Entry %d: hash length mismatch, expected %d, got %d",
+									i, len(expectedHashBytes), len(hashBytes))
+							} else {
+								for j := 0; j < len(hashBytes); j++ {
+									if hashBytes[j] != expectedHashBytes[j] {
+										t.Errorf("Entry %d: hash mismatch at byte %d", i, j)
+										break
+									}
 								}
 							}
 						}
 					}
 				} else {
-					// If no hash was provided, the serialized entry should have an empty hash
 					if len(hashBytes) > 0 {
-						t.Errorf("Entry %d: expected no hash, got %v", i, hashBytes)
+						t.Errorf("Entry %d: expected no hash, got %d bytes", i, len(hashBytes))
 					}
 				}
 			}
@@ -202,10 +217,10 @@ func TestSerializeSnapshotEdgeCases(t *testing.T) {
 			entries[i] = walker.SnapshotEntry{
 				Path:        "/test/file" + string(rune(i)),
 				Size:        int64(i * 1024),
-				ModTime:     int64(1609459200 + i),
+				ModTime:     time.Unix(1609459200+int64(i), 0), // 2021-01-01 00:00:00 + i seconds
 				IsDir:       false,
 				Permissions: 0644,
-				Hash:        []byte{byte(i % 256)},
+				Hash:        "01020304",
 			}
 		}
 
@@ -236,10 +251,10 @@ func TestSerializeSnapshotEdgeCases(t *testing.T) {
 			{
 				Path:        longPath,
 				Size:        1024,
-				ModTime:     1609459200,
+				ModTime:     time.Unix(1609459200, 0), // 2021-01-01 00:00:00
 				IsDir:       false,
 				Permissions: 0644,
-				Hash:        []byte{1, 2, 3, 4},
+				Hash:        "01020304",
 			},
 		}
 
@@ -269,20 +284,23 @@ func TestSerializeSnapshotEdgeCases(t *testing.T) {
 	t.Run("LargeHash", func(t *testing.T) {
 		t.Parallel()
 
-		// Create an entry with a large hash
+		// Create a large hash (1024 bytes)
 		largeHash := make([]byte, 1024)
-		for i := 0; i < 1024; i++ {
+		for i := 0; i < len(largeHash); i++ {
 			largeHash[i] = byte(i % 256)
 		}
+
+		// Convert to hex string
+		largeHashHex := hex.EncodeToString(largeHash)
 
 		entries := []walker.SnapshotEntry{
 			{
 				Path:        "/test/file.txt",
 				Size:        1024,
-				ModTime:     1609459200,
+				ModTime:     time.Unix(1609459200, 0), // 2021-01-01 00:00:00
 				IsDir:       false,
 				Permissions: 0644,
-				Hash:        largeHash,
+				Hash:        largeHashHex,
 			},
 		}
 
