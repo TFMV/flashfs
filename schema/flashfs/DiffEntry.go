@@ -201,8 +201,20 @@ func (rcv *DiffEntry) MutateNewHash(j int, n byte) bool {
 	return false
 }
 
+func (rcv *DiffEntry) IsDir() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *DiffEntry) MutateIsDir(n bool) bool {
+	return rcv._tab.MutateBoolSlot(24, n)
+}
+
 func DiffEntryStart(builder *flatbuffers.Builder) {
-	builder.StartObject(10)
+	builder.StartObject(11)
 }
 func DiffEntryAddPath(builder *flatbuffers.Builder, path flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(path), 0)
@@ -239,6 +251,9 @@ func DiffEntryAddNewHash(builder *flatbuffers.Builder, newHash flatbuffers.UOffs
 }
 func DiffEntryStartNewHashVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(1, numElems, 1)
+}
+func DiffEntryAddIsDir(builder *flatbuffers.Builder, isDir bool) {
+	builder.PrependBoolSlot(10, isDir, false)
 }
 func DiffEntryEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

@@ -27,3 +27,7 @@ go.work.sum
 .DS_Store
 
 python/
+
+test_data_large/
+
+test_data/

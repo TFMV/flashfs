@@ -13,6 +13,7 @@ import (
 	"github.com/TFMV/flashfs/internal/serializer"
 	"github.com/TFMV/flashfs/internal/walker"
 	"github.com/dustin/go-humanize"
+	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -100,7 +101,8 @@ func TestRealWorldBenchmark(t *testing.T) {
 	// Measure the time to serialize the snapshot
 	fmt.Printf("\n2. Serializing snapshot...\n")
 	serializeStart := time.Now()
-	snapshotData, err := serializer.SerializeSnapshot(entries)
+	builder := flatbuffers.NewBuilder(0)
+	snapshotData, err := serializer.SerializeSnapshotFB(entries, builder)
 	serializeDuration := time.Since(serializeStart)
 	require.NoError(t, err)
 
@@ -218,7 +220,7 @@ func TestRealWorldBenchmark(t *testing.T) {
 	// Serialize the modified snapshot
 	fmt.Printf("\n6. Serializing modified snapshot...\n")
 	serializeModifiedStart := time.Now()
-	snapshotModifiedData, err := serializer.SerializeSnapshot(entriesModified)
+	snapshotModifiedData, err := serializer.SerializeSnapshotFB(entriesModified, builder)
 	serializeModifiedDuration := time.Since(serializeModifiedStart)
 	require.NoError(t, err)
 
