@@ -620,116 +620,142 @@
 
 
 <h1 id="serializer">Serializer<a class="headerlink" href="#serializer" title="Permanent link">&para;</a></h1>
-<p>The Serializer component in FlashFS is responsible for efficiently converting file system metadata into a compact binary format for storage and transmission. It plays a crucial role in ensuring that snapshots are both space-efficient and quick to process.</p>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>The Serializer uses <a href="https://google.github.io/flatbuffers/">FlatBuffers</a> as its serialization framework, which provides several advantages:</p>
+<p>The serializer package provides efficient serialization and deserialization of FlashFS data structures, particularly snapshots and diffs. It uses FlatBuffers as the underlying serialization format, which offers memory-efficient zero-copy deserialization.</p>
+<h2 id="features">Features<a class="headerlink" href="#features" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Zero-copy deserialization</strong>: Data can be accessed without unpacking/parsing</li>
-<li><strong>Cross-platform compatibility</strong>: Consistent representation across different systems</li>
-<li><strong>Compact binary format</strong>: Minimizes storage requirements</li>
-<li><strong>Schema evolution</strong>: Allows for backward compatibility as the schema evolves</li>
+<li><strong>Memory Efficiency</strong>: Uses FlatBuffers for zero-copy deserialization</li>
+<li><strong>Builder Reuse</strong>: Optimizes memory usage by reusing FlatBuffer builders</li>
+<li><strong>Streaming Support</strong>: Handles large datasets that don't fit in memory</li>
+<li><strong>Progress Tracking</strong>: Provides chunk-based progress reporting</li>
+<li><strong>Parallel Processing</strong>: Supports concurrent processing of chunks</li>
 </ul>
-<h2 id="schema-definition">Schema Definition<a class="headerlink" href="#schema-definition" title="Permanent link">&para;</a></h2>
-<p>The serialization schema is defined in FlatBuffers IDL (Interface Definition Language) and includes the following main components:</p>
-<div class="highlight"><pre><span></span><code>namespace flashfs;
-
-table FileEntry {
-  path: string;
-  size: long;
-  mtime: long;
-  isDir: bool;
-  permissions: uint;
-  hash: [ubyte];
-}
-
-table Snapshot {
-  entries: [FileEntry];
-}
-
-root_type Snapshot;
-</code></pre></div>
-<p>This schema defines:</p>
+<h2 id="core-components">Core Components<a class="headerlink" href="#core-components" title="Permanent link">&para;</a></h2>
+<h3 id="standard-serialization">Standard Serialization<a class="headerlink" href="#standard-serialization" title="Permanent link">&para;</a></h3>
+<p>The standard serialization functions handle snapshots and diffs that fit in memory:</p>
 <ul>
-<li>A <code>FileEntry</code> table representing metadata for a single file or directory</li>
-<li>A <code>Snapshot</code> table containing a list of file entries</li>
-<li>The root type as <code>Snapshot</code></li>
+<li><code>SerializeSnapshotFB</code>: Serializes a snapshot to a byte array</li>
+<li><code>DeserializeSnapshotFB</code>: Deserializes a snapshot from a byte array</li>
+<li><code>SerializeDiffFB</code>: Serializes a diff to a byte array</li>
+<li><code>DeserializeDiffFB</code>: Deserializes a diff from a byte array</li>
 </ul>
-<h2 id="core-functions">Core Functions<a class="headerlink" href="#core-functions" title="Permanent link">&para;</a></h2>
-<h3 id="serializesnapshot">SerializeSnapshot<a class="headerlink" href="#serializesnapshot" title="Permanent link">&para;</a></h3>
-<p>The <code>SerializeSnapshot</code> function converts a list of file system entries into a binary representation:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">SerializeSnapshot</span><span class="p">(</span><span class="nx">entries</span><span class="w"> </span><span class="p">[]</span><span class="nx">walker</span><span class="p">.</span><span class="nx">SnapshotEntry</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="kt">byte</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<h3 id="streaming-serialization">Streaming Serialization<a class="headerlink" href="#streaming-serialization" title="Permanent link">&para;</a></h3>
+<p>For large datasets, the streaming serialization components break data into manageable chunks:</p>
+<ul>
+<li><code>StreamingSerializer</code>: Serializes and deserializes snapshots in chunks</li>
+<li><code>StreamingDiffSerializer</code>: Serializes and deserializes diffs in chunks</li>
+</ul>
+<h2 id="memory-optimization">Memory Optimization<a class="headerlink" href="#memory-optimization" title="Permanent link">&para;</a></h2>
+<h3 id="builder-reuse">Builder Reuse<a class="headerlink" href="#builder-reuse" title="Permanent link">&para;</a></h3>
+<p>The serializer supports reusing FlatBuffers builders to reduce memory allocations:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Create a builder once</span>
+<span class="nx">builder</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">flatbuffers</span><span class="p">.</span><span class="nx">NewBuilder</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1">// Reuse it for multiple serializations</span>
+<span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">snapshot</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">snapshots</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">data</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">SerializeSnapshotFB</span><span class="p">(</span><span class="nx">snapshot</span><span class="p">,</span><span class="w"> </span><span class="nx">builder</span><span class="p">)</span>
+<span class="w">    </span><span class="c1">// Process data...</span>
+<span class="p">}</span>
 </code></pre></div>
-<p>This function:</p>
-<ol>
-<li>Creates a new FlatBuffers builder</li>
-<li>Converts each entry into a FlatBuffers <code>FileEntry</code></li>
-<li>Builds a vector of all file entries</li>
-<li>Creates a <code>Snapshot</code> containing the entries vector</li>
-<li>Returns the serialized binary data</li>
-</ol>
-<h3 id="deserializesnapshot">DeserializeSnapshot<a class="headerlink" href="#deserializesnapshot" title="Permanent link">&para;</a></h3>
-<p>The <code>DeserializeSnapshot</code> function converts binary data back into a usable format:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">DeserializeSnapshot</span><span class="p">(</span><span class="nx">data</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="p">)</span><span class="w"> </span><span class="p">(</span><span class="o">*</span><span class="nx">flashfs</span><span class="p">.</span><span class="nx">Snapshot</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<h3 id="builder-pool">Builder Pool<a class="headerlink" href="#builder-pool" title="Permanent link">&para;</a></h3>
+<p>When passing <code>nil</code> as the builder parameter, the serializer automatically uses a builder pool:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// This will get a builder from the pool and return it when done</span>
+<span class="nx">data</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">SerializeSnapshotFB</span><span class="p">(</span><span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="kc">nil</span><span class="p">)</span>
 </code></pre></div>
-<p>This function:</p>
-<ol>
-<li>Verifies the binary data</li>
-<li>Creates a FlatBuffers accessor for the data</li>
-<li>Returns a reference to the snapshot without copying the data</li>
-</ol>
+<h2 id="streaming-serialization_1">Streaming Serialization<a class="headerlink" href="#streaming-serialization_1" title="Permanent link">&para;</a></h2>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h3>
+<p>The streaming serializer can be configured with options:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">options</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">StreamingOptions</span><span class="p">{</span>
+<span class="w">    </span><span class="nx">ChunkSize</span><span class="p">:</span><span class="w">  </span><span class="mi">5000</span><span class="p">,</span><span class="w">     </span><span class="c1">// 5000 entries per chunk</span>
+<span class="w">    </span><span class="nx">BufferSize</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="o">*</span><span class="mi">1024</span><span class="p">,</span><span class="w"> </span><span class="c1">// 128KB buffer</span>
+<span class="p">}</span>
+<span class="nx">serializer</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">NewStreamingSerializer</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="writing-to-storage">Writing to Storage<a class="headerlink" href="#writing-to-storage" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">// Serialize to a writer (file, network, etc.)</span>
+<span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">SerializeToWriter</span><span class="p">(</span><span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="nx">writer</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="reading-from-storage">Reading from Storage<a class="headerlink" href="#reading-from-storage" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">// Deserialize from a reader with a callback for each chunk</span>
+<span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">DeserializeFromReader</span><span class="p">(</span><span class="nx">reader</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">chunk</span><span class="w"> </span><span class="nx">SnapshotChunk</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Process chunk.Entries</span>
+<span class="w">    </span><span class="c1">// Track progress with chunk.Index and chunk.Total</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">})</span>
+</code></pre></div>
+<h2 id="progress-tracking">Progress Tracking<a class="headerlink" href="#progress-tracking" title="Permanent link">&para;</a></h2>
+<p>The streaming serializer provides progress information through chunk metadata:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">DeserializeFromReader</span><span class="p">(</span><span class="nx">reader</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">chunk</span><span class="w"> </span><span class="nx">SnapshotChunk</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Update progress</span>
+<span class="w">    </span><span class="nx">progress</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">float64</span><span class="p">(</span><span class="nx">chunk</span><span class="p">.</span><span class="nx">Index</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">float64</span><span class="p">(</span><span class="nx">chunk</span><span class="p">.</span><span class="nx">Total</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Progress: %.2f%% (Chunk %d/%d)\n&quot;</span><span class="p">,</span><span class="w"> </span>
+<span class="w">        </span><span class="nx">progress</span><span class="p">,</span><span class="w"> </span><span class="nx">chunk</span><span class="p">.</span><span class="nx">Index</span><span class="p">,</span><span class="w"> </span><span class="nx">chunk</span><span class="p">.</span><span class="nx">Total</span><span class="p">)</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">})</span>
+</code></pre></div>
+<h2 id="parallel-processing">Parallel Processing<a class="headerlink" href="#parallel-processing" title="Permanent link">&para;</a></h2>
+<p>Chunks can be processed in parallel for improved performance:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Create worker pool</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">wg</span><span class="w"> </span><span class="nx">sync</span><span class="p">.</span><span class="nx">WaitGroup</span>
+<span class="nx">chunkChan</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="nx">SnapshotChunk</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1">// Start worker goroutines</span>
+<span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">runtime</span><span class="p">.</span><span class="nx">NumCPU</span><span class="p">();</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">wg</span><span class="p">.</span><span class="nx">Add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">defer</span><span class="w"> </span><span class="nx">wg</span><span class="p">.</span><span class="nx">Done</span><span class="p">()</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="nx">chunk</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">chunkChan</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// Process chunk in parallel</span>
+<span class="w">            </span><span class="nx">processChunk</span><span class="p">(</span><span class="nx">chunk</span><span class="p">)</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}()</span>
+<span class="p">}</span>
+
+<span class="c1">// Feed chunks to workers</span>
+<span class="nx">serializer</span><span class="p">.</span><span class="nx">DeserializeFromReader</span><span class="p">(</span><span class="nx">reader</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">chunk</span><span class="w"> </span><span class="nx">SnapshotChunk</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">chunkChan</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nx">chunk</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">})</span>
+<span class="nb">close</span><span class="p">(</span><span class="nx">chunkChan</span><span class="p">)</span>
+
+<span class="c1">// Wait for all workers to finish</span>
+<span class="nx">wg</span><span class="p">.</span><span class="nx">Wait</span><span class="p">()</span>
+</code></pre></div>
 <h2 id="performance-considerations">Performance Considerations<a class="headerlink" href="#performance-considerations" title="Permanent link">&para;</a></h2>
-<p>The Serializer is designed for high performance:</p>
+<ol>
+<li>
+<p><strong>Builder Reuse</strong>: Always reuse builders for multiple serializations to reduce allocations.</p>
+</li>
+<li>
+<p><strong>Chunk Size</strong>: For streaming serialization, adjust the chunk size based on your memory constraints and processing needs. Larger chunks are more efficient but use more memory.</p>
+</li>
+<li>
+<p><strong>Buffer Size</strong>: The buffer size affects I/O performance. Larger buffers generally improve performance but use more memory.</p>
+</li>
+<li>
+<p><strong>Parallel Processing</strong>: For large datasets, consider processing chunks in parallel during deserialization.</p>
+</li>
+</ol>
+<h2 id="use-cases">Use Cases<a class="headerlink" href="#use-cases" title="Permanent link">&para;</a></h2>
+<h3 id="efficient-storage">Efficient Storage<a class="headerlink" href="#efficient-storage" title="Permanent link">&para;</a></h3>
+<p>The serializer is optimized for efficient storage of filesystem metadata:</p>
 <ul>
-<li><strong>Memory Efficiency</strong>: Minimizes memory allocations during serialization</li>
-<li><strong>Processing Speed</strong>: Optimized for fast serialization and deserialization</li>
-<li><strong>Size Optimization</strong>: Creates compact representations of file metadata</li>
+<li><strong>Snapshots</strong>: Store the state of a filesystem at a point in time</li>
+<li><strong>Diffs</strong>: Store the changes between two snapshots</li>
 </ul>
-<h2 id="integration-with-other-components">Integration with Other Components<a class="headerlink" href="#integration-with-other-components" title="Permanent link">&para;</a></h2>
-<p>The Serializer integrates with:</p>
+<h3 id="network-transfer">Network Transfer<a class="headerlink" href="#network-transfer" title="Permanent link">&para;</a></h3>
+<p>The streaming serializer is ideal for transferring large datasets over a network:</p>
 <ul>
-<li><strong>Walker</strong>: Receives file metadata from the Walker component</li>
-<li><strong>Storage</strong>: Provides serialized data to the Storage component for compression and persistence</li>
-<li><strong>Diff</strong>: Enables efficient comparison by providing a consistent representation format</li>
+<li><strong>Chunked Transfer</strong>: Send data in manageable chunks</li>
+<li><strong>Progress Reporting</strong>: Track transfer progress</li>
+<li><strong>Resumable Transfers</strong>: Potentially resume interrupted transfers</li>
 </ul>
-<h2 id="example-usage">Example Usage<a class="headerlink" href="#example-usage" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code><span class="c1">// Get file metadata from the Walker</span>
-<span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">Walk</span><span class="p">(</span><span class="s">&quot;/path/to/directory&quot;</span><span class="p">)</span>
-<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
-<span class="p">}</span>
-
-<span class="c1">// Serialize the entries</span>
-<span class="nx">serializedData</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">SerializeSnapshot</span><span class="p">(</span><span class="nx">entries</span><span class="p">)</span>
-<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">err</span>
-<span class="p">}</span>
-
-<span class="c1">// The serialized data can now be compressed and stored</span>
-</code></pre></div>
-<h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
-<p>The Serializer implementation handles several edge cases:</p>
+<h3 id="large-dataset-processing">Large Dataset Processing<a class="headerlink" href="#large-dataset-processing" title="Permanent link">&para;</a></h3>
+<p>For very large filesystems, the streaming serializer enables processing that wouldn't fit in memory:</p>
 <ul>
-<li><strong>Large Files</strong>: Properly represents files of any size using 64-bit integers</li>
-<li><strong>Unicode Paths</strong>: Correctly handles international characters in file paths</li>
-<li><strong>Empty Directories</strong>: Preserves empty directories in the snapshot</li>
-<li><strong>Missing Hashes</strong>: Gracefully handles entries without content hashes</li>
-<li><strong>Schema Versioning</strong>: Maintains compatibility across different versions</li>
+<li><strong>Incremental Processing</strong>: Process data as it becomes available</li>
+<li><strong>Parallel Processing</strong>: Process chunks concurrently</li>
+<li><strong>Memory Efficiency</strong>: Control memory usage with chunk size</li>
 </ul>
-<h2 id="advanced-usage">Advanced Usage<a class="headerlink" href="#advanced-usage" title="Permanent link">&para;</a></h2>
-<h3 id="custom-serialization">Custom Serialization<a class="headerlink" href="#custom-serialization" title="Permanent link">&para;</a></h3>
-<p>For specialized use cases, the Serializer can be extended:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Create a custom serializer with specific options</span>
-<span class="nx">options</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">Options</span><span class="p">{</span>
-<span class="w">    </span><span class="nx">IncludeHashes</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">    </span><span class="nx">CompactPaths</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<span class="p">}</span>
-<span class="nx">serializedData</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">SerializeSnapshotWithOptions</span><span class="p">(</span><span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="p">)</span>
-</code></pre></div>
-<h3 id="partial-deserialization">Partial Deserialization<a class="headerlink" href="#partial-deserialization" title="Permanent link">&para;</a></h3>
-<p>For efficiency when only specific data is needed:</p>
-<div class="highlight"><pre><span></span><code><span class="c1">// Access only the paths without deserializing everything</span>
-<span class="nx">paths</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">serializer</span><span class="p">.</span><span class="nx">ExtractPathsFromSnapshot</span><span class="p">(</span><span class="nx">serializedData</span><span class="p">)</span>
-</code></pre></div>
 
 
 
@@ -750,7 +776,7 @@ root_type Snapshot;
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 9, 2025 01:24:34">March 9, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 9, 2025 02:04:44">March 9, 2025</span>
   </span>
 
     
