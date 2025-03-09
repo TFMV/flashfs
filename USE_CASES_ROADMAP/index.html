@@ -13,10 +13,6 @@
       
       
       
-        <link rel="prev" href="../buffer-pool/">
-      
-      
-        <link rel="next" href="../expiry-policy/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -24,7 +20,7 @@
     
     
       
-        <title>Diff Computation - FlashFS Documentation</title>
+        <title>FlashFS Use Cases and Roadmap - FlashFS Documentation</title>
       
     
     
@@ -109,7 +105,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Diff Computation
+              FlashFS Use Cases and Roadmap
             
           </span>
         </div>
@@ -485,10 +481,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -499,11 +493,13 @@
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -518,7 +514,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             Features
@@ -529,17 +525,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../diff/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -549,7 +538,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -619,181 +607,89 @@
   
 
 
-<h1 id="diff-computation">Diff Computation<a class="headerlink" href="#diff-computation" title="Permanent link">&para;</a></h1>
-<p>FlashFS provides powerful diff computation capabilities that enable efficient comparison, storage, and application of changes between snapshots. This feature is essential for incremental backups, file synchronization, and monitoring changes over time.</p>
-<h2 id="benefits">Benefits<a class="headerlink" href="#benefits" title="Permanent link">&para;</a></h2>
+<h1 id="flashfs-use-cases-and-roadmap">FlashFS Use Cases and Roadmap<a class="headerlink" href="#flashfs-use-cases-and-roadmap" title="Permanent link">&para;</a></h1>
+<h2 id="security-use-cases">Security Use Cases<a class="headerlink" href="#security-use-cases" title="Permanent link">&para;</a></h2>
+<h3 id="intrusion-detection">Intrusion Detection<a class="headerlink" href="#intrusion-detection" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Storage Efficiency</strong>: Store only the changes between snapshots instead of full copies</li>
-<li><strong>Transfer Optimization</strong>: Transmit only the differences when synchronizing snapshots</li>
-<li><strong>Change Tracking</strong>: Easily identify what files have been added, modified, or deleted</li>
-<li><strong>Performance</strong>: Utilize parallel processing and pre-filtering for fast comparisons</li>
-<li><strong>Flexibility</strong>: Configure comparison options based on specific needs</li>
+<li><strong>Current</strong>: Snapshot and diff capabilities to detect file changes.</li>
+<li><strong>Planned</strong>: Real-time monitoring and alerting integration.</li>
 </ul>
-<h2 id="how-diff-computation-works">How Diff Computation Works<a class="headerlink" href="#how-diff-computation-works" title="Permanent link">&para;</a></h2>
-<p>FlashFS implements a multi-stage approach to efficiently compute differences between snapshots:</p>
-<h3 id="1-bloom-filter-pre-check">1. Bloom Filter Pre-check<a class="headerlink" href="#1-bloom-filter-pre-check" title="Permanent link">&para;</a></h3>
-<p>Before performing detailed comparisons, FlashFS uses Bloom filters to quickly identify files that may have changed:</p>
-<ol>
-<li>Creates a Bloom filter from the base snapshot</li>
-<li>Tests each file in the target snapshot against the filter</li>
-<li>Files that fail the Bloom filter test are candidates for detailed comparison</li>
-</ol>
-<p>This pre-filtering step significantly reduces the number of files that need detailed comparison, especially in large snapshots where most files remain unchanged.</p>
-<h3 id="2-detailed-comparison">2. Detailed Comparison<a class="headerlink" href="#2-detailed-comparison" title="Permanent link">&para;</a></h3>
-<p>For files identified by the Bloom filter, FlashFS performs a detailed comparison:</p>
-<ol>
-<li>Compares file metadata (path, size, modification time, permissions)</li>
-<li>Optionally compares file content hashes for detecting changes even when metadata is unchanged</li>
-<li>Identifies files that have been added, modified, or deleted</li>
-</ol>
-<h3 id="3-structured-diff-representation">3. Structured Diff Representation<a class="headerlink" href="#3-structured-diff-representation" title="Permanent link">&para;</a></h3>
-<p>FlashFS uses a structured schema to represent diffs:</p>
-<ol>
-<li>Each changed file is represented as a <code>DiffEntry</code> with:</li>
-<li>Path of the file</li>
-<li>Type of change (added, modified, deleted)</li>
-<li>
-<p>Before and after values for size, modification time, permissions, and content hash</p>
-</li>
-<li>
-<p>All entries are collected in a <code>Diff</code> object that provides:</p>
-</li>
-<li>Efficient serialization and deserialization</li>
-<li>Type-safe access to change information</li>
-<li>Structured representation of all changes</li>
-</ol>
-<h3 id="4-parallel-processing">4. Parallel Processing<a class="headerlink" href="#4-parallel-processing" title="Permanent link">&para;</a></h3>
-<p>To accelerate diff computation for large snapshots, FlashFS can distribute the comparison work across multiple CPU cores:</p>
-<ol>
-<li>Divides the file list into chunks</li>
-<li>Processes each chunk in parallel</li>
-<li>Combines the results into a unified diff</li>
-</ol>
-<h3 id="5-diff-storage">5. Diff Storage<a class="headerlink" href="#5-diff-storage" title="Permanent link">&para;</a></h3>
-<p>The computed diff is stored in a compact format:</p>
-<ol>
-<li>Records only the changes (added, modified, deleted files)</li>
-<li>Uses the same efficient FlatBuffers serialization as snapshots</li>
-<li>Applies Zstd compression to minimize storage requirements</li>
-</ol>
-<h2 id="command-reference">Command Reference<a class="headerlink" href="#command-reference" title="Permanent link">&para;</a></h2>
-<h3 id="computing-a-diff">Computing a Diff<a class="headerlink" href="#computing-a-diff" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span><span class="o">[</span>options<span class="o">]</span>
-</code></pre></div>
-<p>Options:</p>
+<h3 id="forensic-analysis">Forensic Analysis<a class="headerlink" href="#forensic-analysis" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>--base &lt;file&gt;</code>: Base snapshot file (required)</li>
-<li><code>--target &lt;file&gt;</code>: Target snapshot file (required)</li>
-<li><code>--output &lt;file&gt;</code>: Output diff file (required)</li>
-<li><code>--detailed</code>: Perform detailed comparison including file content hashes</li>
-<li><code>--parallel &lt;n&gt;</code>: Number of parallel workers for comparison (default: number of CPU cores)</li>
-<li><code>--no-hash</code>: Skip hash comparison (faster but less accurate)</li>
-<li><code>--path-filter &lt;pattern&gt;</code>: Only compare files matching the specified path pattern</li>
+<li><strong>Current</strong>: Ability to store and retrieve snapshots.</li>
+<li><strong>Planned</strong>: Enhanced querying and filtering tools for forensic investigations.</li>
 </ul>
-<h3 id="applying-a-diff">Applying a Diff<a class="headerlink" href="#applying-a-diff" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>apply<span class="w"> </span><span class="o">[</span>options<span class="o">]</span>
-</code></pre></div>
-<p>Options:</p>
+<h3 id="compliance-verification">Compliance Verification<a class="headerlink" href="#compliance-verification" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>--base &lt;file&gt;</code>: Base snapshot file (required)</li>
-<li><code>--diff &lt;file&gt;</code>: Diff file to apply (required)</li>
-<li><code>--output &lt;file&gt;</code>: Output snapshot file (required)</li>
+<li><strong>Current</strong>: Snapshot comparison for compliance checks.</li>
+<li><strong>Planned</strong>: Automated compliance reporting and integration with compliance frameworks.</li>
 </ul>
-<h3 id="viewing-diff-information">Viewing Diff Information<a class="headerlink" href="#viewing-diff-information" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff-info<span class="w"> </span><span class="o">[</span>options<span class="o">]</span>
-</code></pre></div>
-<p>Options:</p>
+<h2 id="devops-and-infrastructure">DevOps and Infrastructure<a class="headerlink" href="#devops-and-infrastructure" title="Permanent link">&para;</a></h2>
+<h3 id="configuration-management">Configuration Management<a class="headerlink" href="#configuration-management" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>--diff &lt;file&gt;</code>: Diff file to analyze (required)</li>
-<li><code>--verbose</code>: Show detailed information about each changed file</li>
+<li><strong>Current</strong>: Snapshot and diff for configuration drift detection.</li>
+<li><strong>Planned</strong>: Integration with popular configuration management tools (e.g., Ansible, Terraform).</li>
 </ul>
-<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
-<h3 id="basic-diff-computation">Basic Diff Computation<a class="headerlink" href="#basic-diff-computation" title="Permanent link">&para;</a></h3>
-<p>Compute the differences between two snapshots:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff
-</code></pre></div>
-<h3 id="detailed-comparison-with-parallel-processing">Detailed Comparison with Parallel Processing<a class="headerlink" href="#detailed-comparison-with-parallel-processing" title="Permanent link">&para;</a></h3>
-<p>Perform a detailed comparison using 8 parallel workers:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff<span class="w"> </span>--detailed<span class="w"> </span>--parallel<span class="w"> </span><span class="m">8</span>
-</code></pre></div>
-<h3 id="path-filtered-comparison">Path-Filtered Comparison<a class="headerlink" href="#path-filtered-comparison" title="Permanent link">&para;</a></h3>
-<p>Compare only files in a specific directory:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff<span class="w"> </span>--path-filter<span class="w"> </span><span class="s2">&quot;/home/user/documents/*&quot;</span>
-</code></pre></div>
-<h3 id="applying-a-diff-to-generate-a-new-snapshot">Applying a Diff to Generate a New Snapshot<a class="headerlink" href="#applying-a-diff-to-generate-a-new-snapshot" title="Permanent link">&para;</a></h3>
-<p>Apply a diff to a base snapshot to generate a new snapshot:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>apply<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--diff<span class="w"> </span>changes.diff<span class="w"> </span>--output<span class="w"> </span>snapshot2.snap
-</code></pre></div>
-<h3 id="viewing-diff-information_1">Viewing Diff Information<a class="headerlink" href="#viewing-diff-information_1" title="Permanent link">&para;</a></h3>
-<p>Analyze the contents of a diff file:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff-info<span class="w"> </span>--diff<span class="w"> </span>changes.diff<span class="w"> </span>--verbose
-</code></pre></div>
-<h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
-<p>The diff computation is implemented in the <code>SnapshotStore</code> struct with the following key methods:</p>
+<h3 id="disaster-recovery">Disaster Recovery<a class="headerlink" href="#disaster-recovery" title="Permanent link">&para;</a></h3>
 <ul>
-<li><code>ComputeDiff</code>: Computes the differences between two snapshots and returns a structured <code>Diff</code> object</li>
-<li><code>StoreDiff</code>: Stores the computed diff to a file</li>
-<li><code>ApplyDiff</code>: Applies a diff to a base snapshot to generate a new snapshot</li>
+<li><strong>Current</strong>: Snapshot storage and retrieval.</li>
+<li><strong>Planned</strong>: Automated disaster recovery workflows and cloud integration.</li>
 </ul>
-<h3 id="diff-schema">Diff Schema<a class="headerlink" href="#diff-schema" title="Permanent link">&para;</a></h3>
-<p>FlashFS uses a structured schema for representing diffs:</p>
-<div class="highlight"><pre><span></span><code>table DiffEntry {
-  path: string;
-  type: byte;  // 0 = added, 1 = modified, 2 = deleted
-  oldSize: long;
-  newSize: long;
-  oldMtime: long;
-  newMtime: long;
-  oldPermissions: uint;
-  newPermissions: uint;
-  oldHash: [ubyte];
-  newHash: [ubyte];
-}
-
-table Diff {
-  entries: [DiffEntry];
-}
-</code></pre></div>
-<p>This schema provides a clear, structured representation of changes, with each <code>DiffEntry</code> capturing all relevant information about a change:</p>
+<h3 id="infrastructure-as-code-validation">Infrastructure as Code Validation<a class="headerlink" href="#infrastructure-as-code-validation" title="Permanent link">&para;</a></h3>
 <ul>
-<li>For added files (<code>type = 0</code>), only the new metadata is relevant</li>
-<li>For modified files (<code>type = 1</code>), both old and new metadata are stored</li>
-<li>For deleted files (<code>type = 2</code>), only the old metadata is relevant</li>
+<li><strong>Current</strong>: Basic snapshot validation.</li>
+<li><strong>Planned</strong>: Advanced validation rules and integration with CI/CD pipelines.</li>
 </ul>
-<h3 id="computediff-implementation">ComputeDiff Implementation<a class="headerlink" href="#computediff-implementation" title="Permanent link">&para;</a></h3>
-<p>The <code>ComputeDiff</code> function compares two snapshots and produces a structured diff:</p>
-<ol>
-<li>Deserializes both snapshots</li>
-<li>Creates maps of file entries for efficient lookup</li>
-<li>Identifies added, modified, and deleted files</li>
-<li>Creates <code>DiffEntry</code> objects for each change</li>
-<li>Assembles all entries into a <code>Diff</code> object</li>
-<li>Serializes the diff using FlatBuffers</li>
-<li>Compresses the serialized data</li>
-</ol>
-<h3 id="applydiff-implementation">ApplyDiff Implementation<a class="headerlink" href="#applydiff-implementation" title="Permanent link">&para;</a></h3>
-<p>The <code>ApplyDiff</code> function applies a diff to a base snapshot:</p>
-<ol>
-<li>Deserializes the base snapshot</li>
-<li>Deserializes the diff</li>
-<li>Creates a map of base entries</li>
-<li>Processes each diff entry:</li>
-<li>For added files, creates a new entry</li>
-<li>For modified files, updates the existing entry</li>
-<li>For deleted files, removes the entry</li>
-<li>Builds a new snapshot with the modified entries</li>
-<li>Serializes and compresses the new snapshot</li>
-</ol>
-<p>The diff system uses the same efficient serialization and compression techniques as the snapshot system, ensuring consistent performance and storage efficiency.</p>
-<h2 id="performance-considerations">Performance Considerations<a class="headerlink" href="#performance-considerations" title="Permanent link">&para;</a></h2>
+<h2 id="development-and-testing">Development and Testing<a class="headerlink" href="#development-and-testing" title="Permanent link">&para;</a></h2>
+<h3 id="development-environment-management">Development Environment Management<a class="headerlink" href="#development-environment-management" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Bloom Filters</strong>: The Bloom filter pre-check significantly reduces comparison time for large snapshots</li>
-<li><strong>Parallel Processing</strong>: Utilizing multiple CPU cores can dramatically speed up diff computation</li>
-<li><strong>Hash Comparison</strong>: Enabling hash comparison provides more accurate results but increases computation time</li>
-<li><strong>Path Filtering</strong>: Using path filters can focus the comparison on relevant files, reducing processing time</li>
-<li><strong>Structured Diffs</strong>: The structured diff format allows for efficient processing and application of changes</li>
+<li><strong>Current</strong>: Snapshot and restore capabilities.</li>
+<li><strong>Planned</strong>: Enhanced environment cloning and management tools.</li>
 </ul>
-<p>For optimal performance, adjust the parallelism level based on your system's capabilities and use path filters when only specific directories are of interest.</p>
+<h3 id="testing-and-qa">Testing and QA<a class="headerlink" href="#testing-and-qa" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Current</strong>: Snapshot comparison for regression testing.</li>
+<li><strong>Planned</strong>: Integration with automated testing frameworks.</li>
+</ul>
+<h3 id="release-management">Release Management<a class="headerlink" href="#release-management" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Current</strong>: Snapshot tagging and retrieval.</li>
+<li><strong>Planned</strong>: Automated release workflows and version management.</li>
+</ul>
+<h2 id="data-management">Data Management<a class="headerlink" href="#data-management" title="Permanent link">&para;</a></h2>
+<h3 id="data-migration">Data Migration<a class="headerlink" href="#data-migration" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Current</strong>: Snapshot and restore for data migration.</li>
+<li><strong>Planned</strong>: Optimized migration tools and cloud storage integration.</li>
+</ul>
+<h3 id="content-distribution">Content Distribution<a class="headerlink" href="#content-distribution" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Current</strong>: Snapshot storage and retrieval.</li>
+<li><strong>Planned</strong>: CDN integration and optimized distribution workflows.</li>
+</ul>
+<h3 id="version-control-for-unmanaged-files">Version Control for Unmanaged Files<a class="headerlink" href="#version-control-for-unmanaged-files" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Current</strong>: Basic snapshot versioning.</li>
+<li><strong>Planned</strong>: Enhanced version control features and integration with existing VCS.</li>
+</ul>
+<h2 id="specialized-use-cases">Specialized Use Cases<a class="headerlink" href="#specialized-use-cases" title="Permanent link">&para;</a></h2>
+<h3 id="iot-and-edge-computing">IoT and Edge Computing<a class="headerlink" href="#iot-and-edge-computing" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Current</strong>: Lightweight snapshot capabilities.</li>
+<li><strong>Planned</strong>: Optimized edge deployment and management tools.</li>
+</ul>
+<h3 id="machine-learning-operations">Machine Learning Operations<a class="headerlink" href="#machine-learning-operations" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Current</strong>: Snapshot storage for ML datasets.</li>
+<li><strong>Planned</strong>: Integration with ML workflow management tools.</li>
+</ul>
+<h3 id="database-operations">Database Operations<a class="headerlink" href="#database-operations" title="Permanent link">&para;</a></h3>
+<ul>
+<li><strong>Current</strong>: Snapshot and restore for database backups.</li>
+<li><strong>Planned</strong>: Enhanced database-specific snapshot tools and integrations.</li>
+</ul>
+<hr />
+<p>This roadmap outlines the current capabilities of FlashFS and planned improvements to enhance usability and integration across various domains.</p>
 
 
 

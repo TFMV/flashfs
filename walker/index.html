@@ -265,6 +265,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -434,6 +438,50 @@
 
               
             
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hash/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Hash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../buffer-pool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Buffer Pool
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
           </ul>
         </nav>
       
@@ -581,146 +629,259 @@
 <li>Computes content hashes for files</li>
 <li>Handles errors and edge cases during traversal</li>
 <li>Supports context-based cancellation</li>
+<li>Provides streaming implementations for memory efficiency and responsiveness</li>
 </ul>
+<h2 id="walker-implementations">Walker Implementations<a class="headerlink" href="#walker-implementations" title="Permanent link">&para;</a></h2>
+<p>FlashFS provides multiple implementations for walking directory trees, each with different characteristics and use cases:</p>
+<h3 id="standard-walker-walk">Standard Walker (<code>Walk</code>)<a class="headerlink" href="#standard-walker-walk" title="Permanent link">&para;</a></h3>
+<p>The standard walker is a non-streaming implementation that collects all entries in memory before returning them as a slice.</p>
+<div class="highlight"><pre><span></span><code><span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">Walk</span><span class="p">(</span><span class="nx">rootDir</span><span class="p">)</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// handle error</span>
+<span class="p">}</span>
+
+<span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">entry</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">entries</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// process entry</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="callback-based-streaming-walker-walkstreamwithcallback">Callback-based Streaming Walker (<code>WalkStreamWithCallback</code>)<a class="headerlink" href="#callback-based-streaming-walker-walkstreamwithcallback" title="Permanent link">&para;</a></h3>
+<p>The callback-based streaming walker processes entries as they're discovered, calling a user-provided function for each entry.</p>
+<div class="highlight"><pre><span></span><code><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">WalkStreamWithCallback</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span><span class="w"> </span><span class="nx">rootDir</span><span class="p">,</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">DefaultWalkOptions</span><span class="p">(),</span><span class="w"> </span>
+<span class="w">    </span><span class="kd">func</span><span class="p">(</span><span class="nx">entry</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">SnapshotEntry</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="c1">// process entry</span>
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="c1">// return an error to stop walking</span>
+<span class="w">    </span><span class="p">})</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// handle error</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="channel-based-streaming-walker-walkstream">Channel-based Streaming Walker (<code>WalkStream</code>)<a class="headerlink" href="#channel-based-streaming-walker-walkstream" title="Permanent link">&para;</a></h3>
+<p>The channel-based streaming walker returns channels for entries and errors, allowing for concurrent processing.</p>
+<div class="highlight"><pre><span></span><code><span class="nx">entryChan</span><span class="p">,</span><span class="w"> </span><span class="nx">errChan</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">WalkStream</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span><span class="w"> </span><span class="nx">rootDir</span><span class="p">)</span>
+
+<span class="c1">// Process entries as they arrive</span>
+<span class="k">for</span><span class="w"> </span><span class="nx">entry</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">entryChan</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// process entry</span>
+<span class="p">}</span>
+
+<span class="c1">// Check for errors after all entries have been processed</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">errChan</span><span class="p">;</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// handle error</span>
+<span class="p">}</span>
+</code></pre></div>
 <h2 id="core-data-structure">Core Data Structure<a class="headerlink" href="#core-data-structure" title="Permanent link">&para;</a></h2>
 <p>The primary data structure used by the Walker is the <code>SnapshotEntry</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">SnapshotEntry</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">Path</span><span class="w">        </span><span class="kt">string</span>
-<span class="w">    </span><span class="nx">Size</span><span class="w">        </span><span class="kt">int64</span>
-<span class="w">    </span><span class="nx">ModTime</span><span class="w">     </span><span class="kt">int64</span>
-<span class="w">    </span><span class="nx">IsDir</span><span class="w">       </span><span class="kt">bool</span>
-<span class="w">    </span><span class="nx">Permissions</span><span class="w"> </span><span class="kt">uint32</span>
-<span class="w">    </span><span class="nx">Hash</span><span class="w">        </span><span class="p">[]</span><span class="kt">byte</span>
+<span class="w">    </span><span class="nx">Path</span><span class="w">          </span><span class="kt">string</span><span class="w">      </span><span class="c1">// Relative path from the root</span>
+<span class="w">    </span><span class="nx">Size</span><span class="w">          </span><span class="kt">int64</span><span class="w">       </span><span class="c1">// Size in bytes</span>
+<span class="w">    </span><span class="nx">ModTime</span><span class="w">       </span><span class="nx">time</span><span class="p">.</span><span class="nx">Time</span><span class="w">   </span><span class="c1">// Modification time</span>
+<span class="w">    </span><span class="nx">IsDir</span><span class="w">         </span><span class="kt">bool</span><span class="w">        </span><span class="c1">// True if it&#39;s a directory</span>
+<span class="w">    </span><span class="nx">Permissions</span><span class="w">   </span><span class="nx">fs</span><span class="p">.</span><span class="nx">FileMode</span><span class="w"> </span><span class="c1">// File permissions</span>
+<span class="w">    </span><span class="nx">Hash</span><span class="w">          </span><span class="kt">string</span><span class="w">      </span><span class="c1">// Hash of the file content (if computed)</span>
+<span class="w">    </span><span class="nx">SymlinkTarget</span><span class="w"> </span><span class="kt">string</span><span class="w">      </span><span class="c1">// Target of the symlink (if it&#39;s a symlink)</span>
+<span class="w">    </span><span class="nx">Error</span><span class="w">         </span><span class="kt">error</span>
 <span class="p">}</span>
 </code></pre></div>
-<p>This structure captures essential information about each file or directory:</p>
+<p>This structure captures essential information about each file or directory.</p>
+<h2 id="performance-characteristics">Performance Characteristics<a class="headerlink" href="#performance-characteristics" title="Permanent link">&para;</a></h2>
+<p>Based on benchmarks, here are the performance characteristics of each implementation:</p>
+<h3 id="with-hashing-enabled">With Hashing Enabled<a class="headerlink" href="#with-hashing-enabled" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>Operations/sec</th>
+<th>Time/op</th>
+<th>Memory/op</th>
+<th>Allocations/op</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>StandardWalkDir (Go stdlib)</td>
+<td>4,286</td>
+<td>261.9 µs</td>
+<td>63.2 KB</td>
+<td>757</td>
+</tr>
+<tr>
+<td>Walk</td>
+<td>631</td>
+<td>1.86 ms</td>
+<td>12.3 MB</td>
+<td>4,678</td>
+</tr>
+<tr>
+<td>WalkStreamWithCallback</td>
+<td>579</td>
+<td>2.09 ms</td>
+<td>13.0 MB</td>
+<td>4,437</td>
+</tr>
+<tr>
+<td>WalkStream</td>
+<td>579</td>
+<td>2.11 ms</td>
+<td>13.7 MB</td>
+<td>4,441</td>
+</tr>
+</tbody>
+</table>
+<h3 id="without-hashing">Without Hashing<a class="headerlink" href="#without-hashing" title="Permanent link">&para;</a></h3>
+<table>
+<thead>
+<tr>
+<th>Implementation</th>
+<th>Operations/sec</th>
+<th>Time/op</th>
+<th>Memory/op</th>
+<th>Allocations/op</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Walk</td>
+<td>1,642</td>
+<td>728.7 µs</td>
+<td>277.1 KB</td>
+<td>2,077</td>
+</tr>
+<tr>
+<td>WalkStreamWithCallback</td>
+<td>1,101</td>
+<td>1.09 ms</td>
+<td>185.4 KB</td>
+<td>1,636</td>
+</tr>
+<tr>
+<td>WalkStream</td>
+<td>1,056</td>
+<td>1.11 ms</td>
+<td>188.1 KB</td>
+<td>1,641</td>
+</tr>
+</tbody>
+</table>
+<h2 id="when-to-use-each-implementation">When to Use Each Implementation<a class="headerlink" href="#when-to-use-each-implementation" title="Permanent link">&para;</a></h2>
+<h3 id="use-the-standard-walker-walk-when">Use the Standard Walker (<code>Walk</code>) when<a class="headerlink" href="#use-the-standard-walker-walk-when" title="Permanent link">&para;</a></h3>
 <ul>
-<li><strong>Path</strong>: The relative path within the snapshot</li>
-<li><strong>Size</strong>: File size in bytes (0 for directories)</li>
-<li><strong>ModTime</strong>: Modification time as Unix timestamp</li>
-<li><strong>IsDir</strong>: Whether the entry is a directory</li>
-<li><strong>Permissions</strong>: File permissions as a uint32</li>
-<li><strong>Hash</strong>: BLAKE3 hash of the file contents (nil for directories)</li>
+<li>You need all entries before processing can begin</li>
+<li>The directory structure is small to medium-sized</li>
+<li>Simplicity is preferred over advanced features</li>
+<li>You want slightly better performance for small to medium-sized directories</li>
 </ul>
-<h2 id="core-functions">Core Functions<a class="headerlink" href="#core-functions" title="Permanent link">&para;</a></h2>
-<h3 id="walk">Walk<a class="headerlink" href="#walk" title="Permanent link">&para;</a></h3>
-<p>The primary function for traversing a file system:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">Walk</span><span class="p">(</span><span class="nx">root</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">SnapshotEntry</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
-</code></pre></div>
-<p>This function:</p>
+<h3 id="use-the-callback-based-streaming-walker-walkstreamwithcallback-when">Use the Callback-based Streaming Walker (<code>WalkStreamWithCallback</code>) when<a class="headerlink" href="#use-the-callback-based-streaming-walker-walkstreamwithcallback-when" title="Permanent link">&para;</a></h3>
+<ul>
+<li>You want to process entries as they're discovered</li>
+<li>You prefer a callback-based programming style</li>
+<li>You need to handle very large directory structures</li>
+<li>You want to provide progress updates during the walk</li>
+<li>Memory efficiency is important</li>
+</ul>
+<h3 id="use-the-channel-based-streaming-walker-walkstream-when">Use the Channel-based Streaming Walker (<code>WalkStream</code>) when<a class="headerlink" href="#use-the-channel-based-streaming-walker-walkstream-when" title="Permanent link">&para;</a></h3>
+<ul>
+<li>You want to process entries as they're discovered</li>
+<li>You prefer a channel-based programming style</li>
+<li>You need to integrate with other Go concurrency patterns</li>
+<li>You want to process entries concurrently with other operations</li>
+<li>You need to handle very large directory structures</li>
+<li>Memory efficiency is important</li>
+</ul>
+<h2 id="scalability-considerations">Scalability Considerations<a class="headerlink" href="#scalability-considerations" title="Permanent link">&para;</a></h2>
+<p>The streaming walker implementations (both callback and channel-based) offer significant advantages for large directory structures:</p>
 <ol>
-<li>Starts at the specified root directory</li>
-<li>Recursively traverses all subdirectories</li>
-<li>Collects metadata for each file and directory</li>
-<li>Returns a slice of <code>SnapshotEntry</code> structures</li>
+<li>
+<p><strong>Memory Efficiency</strong>: Since entries are processed as they're discovered, the memory footprint remains relatively constant regardless of the directory size.</p>
+</li>
+<li>
+<p><strong>Responsiveness</strong>: Users can start processing entries immediately, rather than waiting for the entire walk to complete.</p>
+</li>
+<li>
+<p><strong>Cancellation</strong>: Operations can be cancelled mid-walk using context cancellation.</p>
+</li>
+<li>
+<p><strong>Progress Reporting</strong>: Real-time progress updates can be provided during the walk.</p>
+</li>
 </ol>
-<h3 id="walkwithcontext">WalkWithContext<a class="headerlink" href="#walkwithcontext" title="Permanent link">&para;</a></h3>
-<p>A context-aware version of the Walk function:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">WalkWithContext</span><span class="p">(</span><span class="nx">ctx</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">Context</span><span class="p">,</span><span class="w"> </span><span class="nx">root</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">([]</span><span class="nx">SnapshotEntry</span><span class="p">,</span><span class="w"> </span><span class="kt">error</span><span class="p">)</span>
+<p>For very large directory structures (millions of files), the streaming implementations are strongly recommended to avoid out-of-memory errors and provide better user experience.</p>
+<h2 id="configuration-options">Configuration Options<a class="headerlink" href="#configuration-options" title="Permanent link">&para;</a></h2>
+<p>The Walker component can be configured using the <code>WalkOptions</code> struct:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">WalkOptions</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// ComputeHashes determines whether file hashes should be computed.</span>
+<span class="w">    </span><span class="nx">ComputeHashes</span><span class="w"> </span><span class="kt">bool</span>
+<span class="w">    </span><span class="c1">// FollowSymlinks determines whether symbolic links should be followed.</span>
+<span class="w">    </span><span class="nx">FollowSymlinks</span><span class="w"> </span><span class="kt">bool</span>
+<span class="w">    </span><span class="c1">// MaxDepth is the maximum directory depth to traverse (0 means no limit).</span>
+<span class="w">    </span><span class="nx">MaxDepth</span><span class="w"> </span><span class="kt">int</span>
+<span class="w">    </span><span class="c1">// NumWorkers specifies the number of worker goroutines for parallel processing.</span>
+<span class="w">    </span><span class="nx">NumWorkers</span><span class="w"> </span><span class="kt">int</span>
+<span class="w">    </span><span class="c1">// HashAlgorithm specifies the algorithm to be used like &quot;BLAKE3&quot;, &quot;MD5&quot; etc</span>
+<span class="w">    </span><span class="nx">HashAlgorithm</span><span class="w"> </span><span class="kt">string</span>
+<span class="w">    </span><span class="c1">// SkipErrors specifies that errors should not cancel operations</span>
+<span class="w">    </span><span class="nx">SkipErrors</span><span class="w"> </span><span class="kt">bool</span>
+<span class="w">    </span><span class="c1">// ExcludePatterns is a list of filepath.Match patterns to exclude from the walk.</span>
+<span class="w">    </span><span class="nx">ExcludePatterns</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span>
+<span class="w">    </span><span class="c1">// UsePartialHashing enables partial hashing for large files.</span>
+<span class="w">    </span><span class="nx">UsePartialHashing</span><span class="w"> </span><span class="kt">bool</span>
+<span class="w">    </span><span class="c1">// PartialHashingThreshold is the file size threshold in bytes above which</span>
+<span class="w">    </span><span class="c1">// partial hashing will be used (if enabled). Default is 10MB.</span>
+<span class="w">    </span><span class="nx">PartialHashingThreshold</span><span class="w"> </span><span class="kt">int64</span>
+<span class="p">}</span>
 </code></pre></div>
-<p>This function behaves like <code>Walk</code> but accepts a context that can be used to cancel the operation.</p>
-<h3 id="computehash">ComputeHash<a class="headerlink" href="#computehash" title="Permanent link">&para;</a></h3>
-<p>Calculates the BLAKE3 hash of a file:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">computeHash</span><span class="p">(</span><span class="nx">path</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span>
+<p>Default options can be obtained using:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">options</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">DefaultWalkOptions</span><span class="p">()</span>
 </code></pre></div>
-<p>This function:</p>
-<ol>
-<li>Opens the specified file</li>
-<li>Streams its contents through the BLAKE3 hash function</li>
-<li>Returns the resulting hash as a byte slice</li>
-</ol>
-<h2 id="performance-optimizations">Performance Optimizations<a class="headerlink" href="#performance-optimizations" title="Permanent link">&para;</a></h2>
-<p>The Walker component includes several optimizations:</p>
-<ul>
-<li><strong>Efficient Directory Traversal</strong>: Uses the high-performance <code>godirwalk</code> library instead of the standard library's <code>filepath.Walk</code></li>
-<li><strong>Fast Hashing</strong>: Employs BLAKE3, a cryptographic hash function optimized for speed</li>
-<li><strong>Streaming Processing</strong>: Computes hashes by streaming file contents rather than loading entire files into memory</li>
-<li><strong>Error Handling</strong>: Continues traversal even when individual files have errors</li>
-</ul>
-<h2 id="usage-examples">Usage Examples<a class="headerlink" href="#usage-examples" title="Permanent link">&para;</a></h2>
-<h3 id="basic-usage">Basic Usage<a class="headerlink" href="#basic-usage" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1">// Walk a directory and collect file metadata</span>
-<span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">Walk</span><span class="p">(</span><span class="s">&quot;/path/to/directory&quot;</span><span class="p">)</span>
+<h2 id="example-processing-a-large-directory-tree">Example: Processing a Large Directory Tree<a class="headerlink" href="#example-processing-a-large-directory-tree" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// Using the callback-based streaming walker</span>
+<span class="nx">processedCount</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span>
+<span class="nx">totalCount</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span>
+
+<span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">WalkStreamWithCallback</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">rootDir</span><span class="p">,</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">DefaultWalkOptions</span><span class="p">(),</span><span class="w"> </span>
+<span class="w">    </span><span class="kd">func</span><span class="p">(</span><span class="nx">entry</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">SnapshotEntry</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">processedCount</span><span class="o">++</span>
+
+<span class="w">        </span><span class="c1">// Process the entry</span>
+<span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">entry</span><span class="p">.</span><span class="nx">IsDir</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="c1">// Do something with the file</span>
+<span class="w">            </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Processing file %s (%d/%d)\n&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">entry</span><span class="p">.</span><span class="nx">Path</span><span class="p">,</span><span class="w"> </span><span class="nx">processedCount</span><span class="p">,</span><span class="w"> </span><span class="nx">totalCount</span><span class="p">)</span>
+<span class="w">        </span><span class="p">}</span>
+
+<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="w">    </span><span class="p">})</span>
+
 <span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">&quot;Failed to walk directory: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Error walking directory: %v\n&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="example-concurrent-processing-with-channels">Example: Concurrent Processing with Channels<a class="headerlink" href="#example-concurrent-processing-with-channels" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// Using the channel-based streaming walker</span>
+<span class="nx">entryChan</span><span class="p">,</span><span class="w"> </span><span class="nx">errChan</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">WalkStream</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">rootDir</span><span class="p">)</span>
+
+<span class="c1">// Create a worker pool</span>
+<span class="kd">const</span><span class="w"> </span><span class="nx">numWorkers</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">4</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">wg</span><span class="w"> </span><span class="nx">sync</span><span class="p">.</span><span class="nx">WaitGroup</span>
+<span class="nx">wg</span><span class="p">.</span><span class="nx">Add</span><span class="p">(</span><span class="nx">numWorkers</span><span class="p">)</span>
+
+<span class="c1">// Start workers</span>
+<span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">numWorkers</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">defer</span><span class="w"> </span><span class="nx">wg</span><span class="p">.</span><span class="nx">Done</span><span class="p">()</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="nx">entry</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">entryChan</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="k">if</span><span class="w"> </span><span class="p">!</span><span class="nx">entry</span><span class="p">.</span><span class="nx">IsDir</span><span class="w"> </span><span class="p">{</span>
+<span class="w">                </span><span class="c1">// Process the file</span>
+<span class="w">                </span><span class="nx">processFile</span><span class="p">(</span><span class="nx">entry</span><span class="p">)</span>
+<span class="w">            </span><span class="p">}</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}()</span>
 <span class="p">}</span>
 
-<span class="c1">// Process the entries</span>
-<span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">entry</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">entries</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Path: %s, Size: %d bytes, IsDir: %v\n&quot;</span><span class="p">,</span><span class="w"> </span>
-<span class="w">               </span><span class="nx">entry</span><span class="p">.</span><span class="nx">Path</span><span class="p">,</span><span class="w"> </span><span class="nx">entry</span><span class="p">.</span><span class="nx">Size</span><span class="p">,</span><span class="w"> </span><span class="nx">entry</span><span class="p">.</span><span class="nx">IsDir</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></div>
-<h3 id="with-context-for-cancellation">With Context for Cancellation<a class="headerlink" href="#with-context-for-cancellation" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1">// Create a context with cancellation</span>
-<span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="nx">cancel</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">WithTimeout</span><span class="p">(</span><span class="nx">context</span><span class="p">.</span><span class="nx">Background</span><span class="p">(),</span><span class="w"> </span><span class="mi">30</span><span class="o">*</span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">)</span>
-<span class="k">defer</span><span class="w"> </span><span class="nx">cancel</span><span class="p">()</span>
+<span class="c1">// Wait for all entries to be processed</span>
+<span class="nx">wg</span><span class="p">.</span><span class="nx">Wait</span><span class="p">()</span>
 
-<span class="c1">// Walk with context</span>
-<span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">WalkWithContext</span><span class="p">(</span><span class="nx">ctx</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;/path/to/directory&quot;</span><span class="p">)</span>
-<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">errors</span><span class="p">.</span><span class="nx">Is</span><span class="p">(</span><span class="nx">err</span><span class="p">,</span><span class="w"> </span><span class="nx">context</span><span class="p">.</span><span class="nx">DeadlineExceeded</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatal</span><span class="p">(</span><span class="s">&quot;Walk operation timed out&quot;</span><span class="p">)</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">    </span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">&quot;Failed to walk directory: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="c1">// Check for errors</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="o">&lt;-</span><span class="nx">errChan</span><span class="p">;</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Error walking directory: %v\n&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
 <span class="p">}</span>
-</code></pre></div>
-<h2 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h2>
-<p>The Walker component handles various error conditions:</p>
-<ul>
-<li><strong>Permission Denied</strong>: Skips files/directories that cannot be accessed</li>
-<li><strong>Non-existent Files</strong>: Returns appropriate errors for invalid paths</li>
-<li><strong>I/O Errors</strong>: Continues traversal even when individual files have errors</li>
-<li><strong>Context Cancellation</strong>: Stops traversal when the context is cancelled</li>
-</ul>
-<h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
-<h3 id="directory-traversal">Directory Traversal<a class="headerlink" href="#directory-traversal" title="Permanent link">&para;</a></h3>
-<p>The Walker uses <code>godirwalk</code> for efficient directory traversal:</p>
-<div class="highlight"><pre><span></span><code><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">godirwalk</span><span class="p">.</span><span class="nx">Walk</span><span class="p">(</span><span class="nx">root</span><span class="p">,</span><span class="w"> </span><span class="o">&amp;</span><span class="nx">godirwalk</span><span class="p">.</span><span class="nx">Options</span><span class="p">{</span>
-<span class="w">    </span><span class="nx">Callback</span><span class="p">:</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">path</span><span class="w"> </span><span class="kt">string</span><span class="p">,</span><span class="w"> </span><span class="nx">de</span><span class="w"> </span><span class="o">*</span><span class="nx">godirwalk</span><span class="p">.</span><span class="nx">Dirent</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="c1">// Process each file/directory</span>
-<span class="w">        </span><span class="c1">// ...</span>
-<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<span class="w">    </span><span class="p">},</span>
-<span class="w">    </span><span class="nx">Unsorted</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span><span class="w"> </span><span class="c1">// For better performance</span>
-<span class="p">})</span>
-</code></pre></div>
-<h3 id="hash-calculation">Hash Calculation<a class="headerlink" href="#hash-calculation" title="Permanent link">&para;</a></h3>
-<p>File content hashes are calculated using BLAKE3:</p>
-<div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">computeHash</span><span class="p">(</span><span class="nx">path</span><span class="w"> </span><span class="kt">string</span><span class="p">)</span><span class="w"> </span><span class="p">[]</span><span class="kt">byte</span><span class="w"> </span><span class="p">{</span>
-<span class="w">    </span><span class="nx">f</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Open</span><span class="p">(</span><span class="nx">path</span><span class="p">)</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<span class="w">    </span><span class="p">}</span>
-<span class="w">    </span><span class="k">defer</span><span class="w"> </span><span class="nx">f</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
-
-<span class="w">    </span><span class="nx">hasher</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">blake3</span><span class="p">.</span><span class="nx">New</span><span class="p">()</span>
-<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">io</span><span class="p">.</span><span class="nx">Copy</span><span class="p">(</span><span class="nx">hasher</span><span class="p">,</span><span class="w"> </span><span class="nx">f</span><span class="p">);</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
-<span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
-<span class="w">    </span><span class="p">}</span>
-
-<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="nx">hasher</span><span class="p">.</span><span class="nx">Sum</span><span class="p">(</span><span class="kc">nil</span><span class="p">)</span>
-<span class="p">}</span>
-</code></pre></div>
-<h2 id="advanced-usage">Advanced Usage<a class="headerlink" href="#advanced-usage" title="Permanent link">&para;</a></h2>
-<h3 id="custom-traversal-options">Custom Traversal Options<a class="headerlink" href="#custom-traversal-options" title="Permanent link">&para;</a></h3>
-<p>For specialized use cases, the Walker can be extended with custom options:</p>
-<div class="highlight"><pre><span></span><code><span class="nx">options</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">Options</span><span class="p">{</span>
-<span class="w">    </span><span class="nx">SkipHidden</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">    </span><span class="nx">MaxDepth</span><span class="p">:</span><span class="w"> </span><span class="mi">10</span><span class="p">,</span>
-<span class="w">    </span><span class="nx">FollowSymlinks</span><span class="p">:</span><span class="w"> </span><span class="kc">false</span><span class="p">,</span>
-<span class="w">    </span><span class="nx">IncludePattern</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;*.txt&quot;</span><span class="p">,</span>
-<span class="w">    </span><span class="nx">ExcludePattern</span><span class="p">:</span><span class="w"> </span><span class="s">&quot;.git/*&quot;</span><span class="p">,</span>
-<span class="p">}</span>
-<span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">WalkWithOptions</span><span class="p">(</span><span class="s">&quot;/path/to/directory&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="p">)</span>
-</code></pre></div>
-<h3 id="parallel-hashing">Parallel Hashing<a class="headerlink" href="#parallel-hashing" title="Permanent link">&para;</a></h3>
-<p>For improved performance on multi-core systems:</p>
-<div class="highlight"><pre><span></span><code><span class="nx">options</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">Options</span><span class="p">{</span>
-<span class="w">    </span><span class="nx">ParallelHashing</span><span class="p">:</span><span class="w"> </span><span class="kc">true</span><span class="p">,</span>
-<span class="w">    </span><span class="nx">HashWorkers</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span>
-<span class="p">}</span>
-<span class="nx">entries</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">walker</span><span class="p">.</span><span class="nx">WalkWithOptions</span><span class="p">(</span><span class="s">&quot;/path/to/directory&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="p">)</span>
 </code></pre></div>
 <h2 id="integration-with-other-components">Integration with Other Components<a class="headerlink" href="#integration-with-other-components" title="Permanent link">&para;</a></h2>
 <p>The Walker integrates with:</p>
@@ -729,6 +890,8 @@
 <li><strong>Storage</strong>: Indirectly supplies the data for snapshots</li>
 <li><strong>Diff</strong>: Enables comparison by providing consistent metadata</li>
 </ul>
+<h2 id="conclusion">Conclusion<a class="headerlink" href="#conclusion" title="Permanent link">&para;</a></h2>
+<p>FlashFS provides multiple walker implementations to suit different use cases and programming styles. For most applications, the streaming implementations offer the best balance of features, scalability, and usability, especially for large directory structures. The standard walker provides slightly better performance for small to medium-sized directories when all entries need to be collected before processing.</p>
 
 
 
@@ -749,7 +912,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 5, 2025 11:26:34">March 5, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 9, 2025 01:23:01">March 9, 2025</span>
   </span>
 
     

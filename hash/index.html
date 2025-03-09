@@ -13,10 +13,10 @@
       
       
       
-        <link rel="prev" href="../buffer-pool/">
+        <link rel="prev" href="../cloud-storage/">
       
       
-        <link rel="next" href="../expiry-policy/">
+        <link rel="next" href="../buffer-pool/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>Diff Computation - FlashFS Documentation</title>
+        <title>Hash - FlashFS Documentation</title>
       
     
     
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Diff Computation
+              Hash
             
           </span>
         </div>
@@ -246,8 +246,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -270,13 +272,11 @@
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" checked>
         
           
           <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
@@ -291,7 +291,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_2">
             <span class="md-nav__icon md-icon"></span>
             Components
@@ -434,10 +434,17 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../hash/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -447,6 +454,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -485,10 +493,8 @@
       
   
   
-    
   
   
-  
     
     
       
@@ -499,11 +505,13 @@
     
     
     
-    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--nested">
       
         
         
-        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -518,7 +526,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             Features
@@ -529,17 +537,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../diff/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -549,7 +550,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -619,181 +619,122 @@
   
 
 
-<h1 id="diff-computation">Diff Computation<a class="headerlink" href="#diff-computation" title="Permanent link">&para;</a></h1>
-<p>FlashFS provides powerful diff computation capabilities that enable efficient comparison, storage, and application of changes between snapshots. This feature is essential for incremental backups, file synchronization, and monitoring changes over time.</p>
-<h2 id="benefits">Benefits<a class="headerlink" href="#benefits" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Storage Efficiency</strong>: Store only the changes between snapshots instead of full copies</li>
-<li><strong>Transfer Optimization</strong>: Transmit only the differences when synchronizing snapshots</li>
-<li><strong>Change Tracking</strong>: Easily identify what files have been added, modified, or deleted</li>
-<li><strong>Performance</strong>: Utilize parallel processing and pre-filtering for fast comparisons</li>
-<li><strong>Flexibility</strong>: Configure comparison options based on specific needs</li>
-</ul>
-<h2 id="how-diff-computation-works">How Diff Computation Works<a class="headerlink" href="#how-diff-computation-works" title="Permanent link">&para;</a></h2>
-<p>FlashFS implements a multi-stage approach to efficiently compute differences between snapshots:</p>
-<h3 id="1-bloom-filter-pre-check">1. Bloom Filter Pre-check<a class="headerlink" href="#1-bloom-filter-pre-check" title="Permanent link">&para;</a></h3>
-<p>Before performing detailed comparisons, FlashFS uses Bloom filters to quickly identify files that may have changed:</p>
+<h1 id="hash-module">Hash Module<a class="headerlink" href="#hash-module" title="Permanent link">&para;</a></h1>
+<p>The Hash module provides efficient and flexible file hashing capabilities for FlashFS. It supports multiple hashing algorithms, concurrent processing, and memory-efficient operations through a buffer pool.</p>
+<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
+<p>The Hash module is designed to:</p>
 <ol>
-<li>Creates a Bloom filter from the base snapshot</li>
-<li>Tests each file in the target snapshot against the filter</li>
-<li>Files that fail the Bloom filter test are candidates for detailed comparison</li>
+<li>Compute hashes for files, byte slices, strings, and readers</li>
+<li>Support multiple hashing algorithms (BLAKE3, MD5, SHA1, SHA256)</li>
+<li>Optimize memory usage with a buffer pool</li>
+<li>Enable concurrent hashing of multiple files</li>
+<li>Provide partial hashing for large files to improve performance</li>
 </ol>
-<p>This pre-filtering step significantly reduces the number of files that need detailed comparison, especially in large snapshots where most files remain unchanged.</p>
-<h3 id="2-detailed-comparison">2. Detailed Comparison<a class="headerlink" href="#2-detailed-comparison" title="Permanent link">&para;</a></h3>
-<p>For files identified by the Bloom filter, FlashFS performs a detailed comparison:</p>
-<ol>
-<li>Compares file metadata (path, size, modification time, permissions)</li>
-<li>Optionally compares file content hashes for detecting changes even when metadata is unchanged</li>
-<li>Identifies files that have been added, modified, or deleted</li>
-</ol>
-<h3 id="3-structured-diff-representation">3. Structured Diff Representation<a class="headerlink" href="#3-structured-diff-representation" title="Permanent link">&para;</a></h3>
-<p>FlashFS uses a structured schema to represent diffs:</p>
-<ol>
-<li>Each changed file is represented as a <code>DiffEntry</code> with:</li>
-<li>Path of the file</li>
-<li>Type of change (added, modified, deleted)</li>
-<li>
-<p>Before and after values for size, modification time, permissions, and content hash</p>
-</li>
-<li>
-<p>All entries are collected in a <code>Diff</code> object that provides:</p>
-</li>
-<li>Efficient serialization and deserialization</li>
-<li>Type-safe access to change information</li>
-<li>Structured representation of all changes</li>
-</ol>
-<h3 id="4-parallel-processing">4. Parallel Processing<a class="headerlink" href="#4-parallel-processing" title="Permanent link">&para;</a></h3>
-<p>To accelerate diff computation for large snapshots, FlashFS can distribute the comparison work across multiple CPU cores:</p>
-<ol>
-<li>Divides the file list into chunks</li>
-<li>Processes each chunk in parallel</li>
-<li>Combines the results into a unified diff</li>
-</ol>
-<h3 id="5-diff-storage">5. Diff Storage<a class="headerlink" href="#5-diff-storage" title="Permanent link">&para;</a></h3>
-<p>The computed diff is stored in a compact format:</p>
-<ol>
-<li>Records only the changes (added, modified, deleted files)</li>
-<li>Uses the same efficient FlatBuffers serialization as snapshots</li>
-<li>Applies Zstd compression to minimize storage requirements</li>
-</ol>
-<h2 id="command-reference">Command Reference<a class="headerlink" href="#command-reference" title="Permanent link">&para;</a></h2>
-<h3 id="computing-a-diff">Computing a Diff<a class="headerlink" href="#computing-a-diff" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span><span class="o">[</span>options<span class="o">]</span>
-</code></pre></div>
-<p>Options:</p>
+<h2 id="key-components">Key Components<a class="headerlink" href="#key-components" title="Permanent link">&para;</a></h2>
+<h3 id="algorithms">Algorithms<a class="headerlink" href="#algorithms" title="Permanent link">&para;</a></h3>
+<p>The module supports the following hashing algorithms:</p>
 <ul>
-<li><code>--base &lt;file&gt;</code>: Base snapshot file (required)</li>
-<li><code>--target &lt;file&gt;</code>: Target snapshot file (required)</li>
-<li><code>--output &lt;file&gt;</code>: Output diff file (required)</li>
-<li><code>--detailed</code>: Perform detailed comparison including file content hashes</li>
-<li><code>--parallel &lt;n&gt;</code>: Number of parallel workers for comparison (default: number of CPU cores)</li>
-<li><code>--no-hash</code>: Skip hash comparison (faster but less accurate)</li>
-<li><code>--path-filter &lt;pattern&gt;</code>: Only compare files matching the specified path pattern</li>
+<li><strong>BLAKE3</strong> (default): Fast and cryptographically secure</li>
+<li><strong>MD5</strong>: Provided for compatibility (not cryptographically secure)</li>
+<li><strong>SHA1</strong>: Provided for compatibility (not cryptographically secure)</li>
+<li><strong>SHA256</strong>: Secure but slower algorithm</li>
 </ul>
-<h3 id="applying-a-diff">Applying a Diff<a class="headerlink" href="#applying-a-diff" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>apply<span class="w"> </span><span class="o">[</span>options<span class="o">]</span>
+<h3 id="options">Options<a class="headerlink" href="#options" title="Permanent link">&para;</a></h3>
+<p>Hashing behavior can be configured using the <code>Options</code> struct:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">Options</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Algorithm</span><span class="w">               </span><span class="nx">Algorithm</span>
+<span class="w">    </span><span class="nx">BufferSize</span><span class="w">              </span><span class="kt">int</span>
+<span class="w">    </span><span class="nx">SkipErrors</span><span class="w">              </span><span class="kt">bool</span>
+<span class="w">    </span><span class="nx">Concurrency</span><span class="w">             </span><span class="kt">int</span>
+<span class="w">    </span><span class="nx">UsePartialHashing</span><span class="w">       </span><span class="kt">bool</span>
+<span class="w">    </span><span class="nx">PartialHashingThreshold</span><span class="w"> </span><span class="kt">int64</span>
+<span class="p">}</span>
 </code></pre></div>
-<p>Options:</p>
 <ul>
-<li><code>--base &lt;file&gt;</code>: Base snapshot file (required)</li>
-<li><code>--diff &lt;file&gt;</code>: Diff file to apply (required)</li>
-<li><code>--output &lt;file&gt;</code>: Output snapshot file (required)</li>
+<li><strong>Algorithm</strong>: The hashing algorithm to use</li>
+<li><strong>BufferSize</strong>: Size of the buffer used for reading files (default: 16MB)</li>
+<li><strong>SkipErrors</strong>: Whether to return an error or an empty hash on failure</li>
+<li><strong>Concurrency</strong>: Number of files to hash concurrently (0 = use all available CPUs)</li>
+<li><strong>UsePartialHashing</strong>: Enables partial hashing for large files</li>
+<li><strong>PartialHashingThreshold</strong>: File size threshold above which partial hashing is used (default: 10MB)</li>
 </ul>
-<h3 id="viewing-diff-information">Viewing Diff Information<a class="headerlink" href="#viewing-diff-information" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff-info<span class="w"> </span><span class="o">[</span>options<span class="o">]</span>
+<h3 id="result">Result<a class="headerlink" href="#result" title="Permanent link">&para;</a></h3>
+<p>The <code>Result</code> struct represents the outcome of a hashing operation:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">Result</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Hash</span><span class="w">      </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">Error</span><span class="w">     </span><span class="kt">error</span>
+<span class="w">    </span><span class="nx">Algorithm</span><span class="w"> </span><span class="nx">Algorithm</span>
+<span class="w">    </span><span class="nx">Size</span><span class="w">      </span><span class="kt">int64</span>
+<span class="p">}</span>
 </code></pre></div>
-<p>Options:</p>
-<ul>
-<li><code>--diff &lt;file&gt;</code>: Diff file to analyze (required)</li>
-<li><code>--verbose</code>: Show detailed information about each changed file</li>
-</ul>
-<h2 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h2>
-<h3 id="basic-diff-computation">Basic Diff Computation<a class="headerlink" href="#basic-diff-computation" title="Permanent link">&para;</a></h3>
-<p>Compute the differences between two snapshots:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff
-</code></pre></div>
-<h3 id="detailed-comparison-with-parallel-processing">Detailed Comparison with Parallel Processing<a class="headerlink" href="#detailed-comparison-with-parallel-processing" title="Permanent link">&para;</a></h3>
-<p>Perform a detailed comparison using 8 parallel workers:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff<span class="w"> </span>--detailed<span class="w"> </span>--parallel<span class="w"> </span><span class="m">8</span>
-</code></pre></div>
-<h3 id="path-filtered-comparison">Path-Filtered Comparison<a class="headerlink" href="#path-filtered-comparison" title="Permanent link">&para;</a></h3>
-<p>Compare only files in a specific directory:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff<span class="w"> </span>--path-filter<span class="w"> </span><span class="s2">&quot;/home/user/documents/*&quot;</span>
-</code></pre></div>
-<h3 id="applying-a-diff-to-generate-a-new-snapshot">Applying a Diff to Generate a New Snapshot<a class="headerlink" href="#applying-a-diff-to-generate-a-new-snapshot" title="Permanent link">&para;</a></h3>
-<p>Apply a diff to a base snapshot to generate a new snapshot:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>apply<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--diff<span class="w"> </span>changes.diff<span class="w"> </span>--output<span class="w"> </span>snapshot2.snap
-</code></pre></div>
-<h3 id="viewing-diff-information_1">Viewing Diff Information<a class="headerlink" href="#viewing-diff-information_1" title="Permanent link">&para;</a></h3>
-<p>Analyze the contents of a diff file:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff-info<span class="w"> </span>--diff<span class="w"> </span>changes.diff<span class="w"> </span>--verbose
-</code></pre></div>
-<h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
-<p>The diff computation is implemented in the <code>SnapshotStore</code> struct with the following key methods:</p>
-<ul>
-<li><code>ComputeDiff</code>: Computes the differences between two snapshots and returns a structured <code>Diff</code> object</li>
-<li><code>StoreDiff</code>: Stores the computed diff to a file</li>
-<li><code>ApplyDiff</code>: Applies a diff to a base snapshot to generate a new snapshot</li>
-</ul>
-<h3 id="diff-schema">Diff Schema<a class="headerlink" href="#diff-schema" title="Permanent link">&para;</a></h3>
-<p>FlashFS uses a structured schema for representing diffs:</p>
-<div class="highlight"><pre><span></span><code>table DiffEntry {
-  path: string;
-  type: byte;  // 0 = added, 1 = modified, 2 = deleted
-  oldSize: long;
-  newSize: long;
-  oldMtime: long;
-  newMtime: long;
-  oldPermissions: uint;
-  newPermissions: uint;
-  oldHash: [ubyte];
-  newHash: [ubyte];
-}
+<h2 id="core-functions">Core Functions<a class="headerlink" href="#core-functions" title="Permanent link">&para;</a></h2>
+<h3 id="file-hashing">File Hashing<a class="headerlink" href="#file-hashing" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">// Hash a file using the specified options</span>
+<span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">File</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="p">)</span>
 
-table Diff {
-  entries: [DiffEntry];
-}
+<span class="c1">// Hash multiple files concurrently</span>
+<span class="nx">results</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">FilesConcurrent</span><span class="p">(</span><span class="nx">paths</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="p">)</span>
+
+<span class="c1">// Hash a large file using partial hashing</span>
+<span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">PartialFile</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="p">)</span>
 </code></pre></div>
-<p>This schema provides a clear, structured representation of changes, with each <code>DiffEntry</code> capturing all relevant information about a change:</p>
+<h3 id="other-hashing-functions">Other Hashing Functions<a class="headerlink" href="#other-hashing-functions" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">// Hash a byte slice</span>
+<span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">Bytes</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span><span class="w"> </span><span class="nx">algorithm</span><span class="p">)</span>
+
+<span class="c1">// Hash a string</span>
+<span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">String</span><span class="p">(</span><span class="nx">data</span><span class="p">,</span><span class="w"> </span><span class="nx">algorithm</span><span class="p">)</span>
+
+<span class="c1">// Hash data from an io.Reader</span>
+<span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">Reader</span><span class="p">(</span><span class="nx">reader</span><span class="p">,</span><span class="w"> </span><span class="nx">algorithm</span><span class="p">)</span>
+
+<span class="c1">// Verify a file against an expected hash</span>
+<span class="nx">match</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">Verify</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">expectedHash</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="partial-hashing">Partial Hashing<a class="headerlink" href="#partial-hashing" title="Permanent link">&para;</a></h2>
+<p>For large files, the module provides a partial hashing feature that samples portions of the file rather than reading the entire content:</p>
 <ul>
-<li>For added files (<code>type = 0</code>), only the new metadata is relevant</li>
-<li>For modified files (<code>type = 1</code>), both old and new metadata are stored</li>
-<li>For deleted files (<code>type = 2</code>), only the old metadata is relevant</li>
+<li>The first N bytes</li>
+<li>The middle N bytes</li>
+<li>The last N bytes</li>
 </ul>
-<h3 id="computediff-implementation">ComputeDiff Implementation<a class="headerlink" href="#computediff-implementation" title="Permanent link">&para;</a></h3>
-<p>The <code>ComputeDiff</code> function compares two snapshots and produces a structured diff:</p>
-<ol>
-<li>Deserializes both snapshots</li>
-<li>Creates maps of file entries for efficient lookup</li>
-<li>Identifies added, modified, and deleted files</li>
-<li>Creates <code>DiffEntry</code> objects for each change</li>
-<li>Assembles all entries into a <code>Diff</code> object</li>
-<li>Serializes the diff using FlatBuffers</li>
-<li>Compresses the serialized data</li>
-</ol>
-<h3 id="applydiff-implementation">ApplyDiff Implementation<a class="headerlink" href="#applydiff-implementation" title="Permanent link">&para;</a></h3>
-<p>The <code>ApplyDiff</code> function applies a diff to a base snapshot:</p>
-<ol>
-<li>Deserializes the base snapshot</li>
-<li>Deserializes the diff</li>
-<li>Creates a map of base entries</li>
-<li>Processes each diff entry:</li>
-<li>For added files, creates a new entry</li>
-<li>For modified files, updates the existing entry</li>
-<li>For deleted files, removes the entry</li>
-<li>Builds a new snapshot with the modified entries</li>
-<li>Serializes and compresses the new snapshot</li>
-</ol>
-<p>The diff system uses the same efficient serialization and compression techniques as the snapshot system, ensuring consistent performance and storage efficiency.</p>
+<p>These samples are combined to create a representative hash of the file. This approach is significantly faster for very large files while still providing reliable change detection.</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Enable partial hashing in options</span>
+<span class="nx">options</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">DefaultOptions</span><span class="p">()</span>
+<span class="nx">options</span><span class="p">.</span><span class="nx">UsePartialHashing</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="kc">true</span>
+<span class="nx">options</span><span class="p">.</span><span class="nx">PartialHashingThreshold</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">100</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="c1">// 100MB</span>
+
+<span class="c1">// Hash a file (will use partial hashing for files &gt; 100MB)</span>
+<span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">File</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="p">)</span>
+</code></pre></div>
 <h2 id="performance-considerations">Performance Considerations<a class="headerlink" href="#performance-considerations" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Bloom Filters</strong>: The Bloom filter pre-check significantly reduces comparison time for large snapshots</li>
-<li><strong>Parallel Processing</strong>: Utilizing multiple CPU cores can dramatically speed up diff computation</li>
-<li><strong>Hash Comparison</strong>: Enabling hash comparison provides more accurate results but increases computation time</li>
-<li><strong>Path Filtering</strong>: Using path filters can focus the comparison on relevant files, reducing processing time</li>
-<li><strong>Structured Diffs</strong>: The structured diff format allows for efficient processing and application of changes</li>
+<li><strong>Buffer Size</strong>: Larger buffers generally improve throughput but consume more memory</li>
+<li><strong>Concurrency</strong>: Adjust based on available CPU cores and I/O capabilities</li>
+<li><strong>Partial Hashing</strong>: Consider for very large files where full hashing would be prohibitively expensive</li>
+<li><strong>Algorithm Choice</strong>: BLAKE3 offers the best performance among the secure algorithms</li>
 </ul>
-<p>For optimal performance, adjust the parallelism level based on your system's capabilities and use path filters when only specific directories are of interest.</p>
+<h2 id="example-usage">Example Usage<a class="headerlink" href="#example-usage" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// Basic file hashing with default options</span>
+<span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">File</span><span class="p">(</span><span class="s">&quot;path/to/file.txt&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">DefaultOptions</span><span class="p">())</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">Error</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">log</span><span class="p">.</span><span class="nx">Fatalf</span><span class="p">(</span><span class="s">&quot;Failed to hash file: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">Error</span><span class="p">)</span>
+<span class="p">}</span>
+<span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Hash: %s\n&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span>
+
+<span class="c1">// Concurrent hashing of multiple files</span>
+<span class="nx">files</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="p">[]</span><span class="kt">string</span><span class="p">{</span><span class="s">&quot;file1.txt&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;file2.txt&quot;</span><span class="p">,</span><span class="w"> </span><span class="s">&quot;file3.txt&quot;</span><span class="p">}</span>
+<span class="nx">options</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">DefaultOptions</span><span class="p">()</span>
+<span class="nx">options</span><span class="p">.</span><span class="nx">Algorithm</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">SHA256</span>
+<span class="nx">results</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">FilesConcurrent</span><span class="p">(</span><span class="nx">files</span><span class="p">,</span><span class="w"> </span><span class="nx">options</span><span class="p">)</span>
+<span class="k">for</span><span class="w"> </span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">results</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">Error</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Failed to hash %s: %v\n&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">Error</span><span class="p">)</span>
+<span class="w">        </span><span class="k">continue</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;%s: %s\n&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">result</span><span class="p">.</span><span class="nx">Hash</span><span class="p">)</span>
+<span class="p">}</span>
+</code></pre></div>
 
 
 

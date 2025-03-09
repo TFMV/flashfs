@@ -13,10 +13,10 @@
       
       
       
-        <link rel="prev" href="../storage/">
+        <link rel="prev" href="../hash/">
       
       
-        <link rel="next" href="../hash/">
+        <link rel="next" href="../diff/">
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -24,7 +24,7 @@
     
     
       
-        <title>Cloud Storage - FlashFS Documentation</title>
+        <title>Buffer Pool - FlashFS Documentation</title>
       
     
     
@@ -109,7 +109,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Cloud Storage
+              Buffer Pool
             
           </span>
         </div>
@@ -412,17 +412,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../cloud-storage/" class="md-nav__link">
         
   
   <span class="md-ellipsis">
@@ -432,7 +425,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -464,10 +456,17 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../buffer-pool/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -477,6 +476,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -619,132 +619,167 @@
   
 
 
-<h1 id="cloud-storage-integration">Cloud Storage Integration<a class="headerlink" href="#cloud-storage-integration" title="Permanent link">&para;</a></h1>
-<p>FlashFS provides integration with cloud storage services, allowing you to export snapshots to and restore them from cloud storage providers like Amazon S3, Google Cloud Storage (GCS), or any S3-compatible storage service (like MinIO).</p>
+<h1 id="buffer-pool">Buffer Pool<a class="headerlink" href="#buffer-pool" title="Permanent link">&para;</a></h1>
+<p>The Buffer Pool module provides memory-efficient buffer management for FlashFS operations, particularly for file hashing and I/O operations. It reduces memory allocations and garbage collection pressure by reusing byte slices.</p>
 <h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>The cloud storage integration enables:</p>
-<ul>
-<li>Exporting snapshots to cloud storage for backup or archival purposes</li>
-<li>Restoring snapshots from cloud storage to a local directory</li>
-<li>Compression and decompression of snapshots during transfer</li>
-<li>Support for multiple cloud storage providers</li>
-</ul>
-<h2 id="supported-storage-providers">Supported Storage Providers<a class="headerlink" href="#supported-storage-providers" title="Permanent link">&para;</a></h2>
-<p>FlashFS currently supports the following cloud storage providers:</p>
-<ul>
-<li><strong>Amazon S3</strong>: Native support for Amazon S3 storage</li>
-<li><strong>Google Cloud Storage (GCS)</strong>: Native support for Google Cloud Storage</li>
-<li><strong>S3-Compatible Storage</strong>: Support for MinIO, Ceph, and other S3-compatible storage services</li>
-</ul>
-<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
-<p>Cloud storage configuration is primarily done through environment variables:</p>
-<h3 id="amazon-s3-configuration">Amazon S3 Configuration<a class="headerlink" href="#amazon-s3-configuration" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># Required</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">S3_ACCESS_KEY</span><span class="o">=</span>your-access-key
-<span class="nb">export</span><span class="w"> </span><span class="nv">S3_SECRET_KEY</span><span class="o">=</span>your-secret-key
-
-<span class="c1"># Optional</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">S3_ENDPOINT</span><span class="o">=</span>https://s3.amazonaws.com<span class="w">  </span><span class="c1"># Custom endpoint for S3-compatible storage</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">S3_REGION</span><span class="o">=</span>us-east-1<span class="w">                   </span><span class="c1"># AWS region (default: us-east-1)</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">S3_INSECURE</span><span class="o">=</span><span class="nb">false</span><span class="w">                     </span><span class="c1"># Use insecure connection (default: false)</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">S3_FORCE_PATH_STYLE</span><span class="o">=</span><span class="nb">false</span><span class="w">             </span><span class="c1"># Use path-style addressing (default: false)</span>
-</code></pre></div>
-<h3 id="google-cloud-storage-configuration">Google Cloud Storage Configuration<a class="headerlink" href="#google-cloud-storage-configuration" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># Required for service account authentication</span>
-<span class="nb">export</span><span class="w"> </span><span class="nv">GOOGLE_APPLICATION_CREDENTIALS</span><span class="o">=</span>/path/to/service-account.json
-</code></pre></div>
-<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
-<h3 id="exporting-snapshots">Exporting Snapshots<a class="headerlink" href="#exporting-snapshots" title="Permanent link">&para;</a></h3>
-<p>The <code>export</code> command allows you to export snapshots to cloud storage:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span><span class="nb">export</span><span class="w"> </span><span class="o">[</span>destination<span class="o">]</span><span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
-</code></pre></div>
-<p>Where <code>destination</code> is a URL in the format <code>s3://bucket-name/prefix/</code> or <code>gcs://bucket-name/prefix/</code>.</p>
-<h4 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h4>
-<p>Export a specific snapshot to S3:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span><span class="nb">export</span><span class="w"> </span>s3://mybucket/flashfs-backups/<span class="w"> </span>--snapshot<span class="w"> </span>snapshot1.snap
-</code></pre></div>
-<p>Export all snapshots to GCS:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span><span class="nb">export</span><span class="w"> </span>gcs://my-bucket-name/<span class="w"> </span>--all
-</code></pre></div>
-<p>Export to MinIO or other S3-compatible storage:</p>
-<div class="highlight"><pre><span></span><code><span class="nb">export</span><span class="w"> </span><span class="nv">S3_ENDPOINT</span><span class="o">=</span>https://minio.example.com
-<span class="nb">export</span><span class="w"> </span><span class="nv">S3_ACCESS_KEY</span><span class="o">=</span>your-access-key
-<span class="nb">export</span><span class="w"> </span><span class="nv">S3_SECRET_KEY</span><span class="o">=</span>your-secret-key
-<span class="nb">export</span><span class="w"> </span><span class="nv">S3_FORCE_PATH_STYLE</span><span class="o">=</span><span class="nb">true</span>
-flashfs<span class="w"> </span><span class="nb">export</span><span class="w"> </span>s3://mybucket/backups/<span class="w"> </span>--all
-</code></pre></div>
-<h4 id="flags">Flags<a class="headerlink" href="#flags" title="Permanent link">&para;</a></h4>
-<ul>
-<li><code>--dir string</code>: Directory containing snapshots (default "snapshots")</li>
-<li><code>--snapshot string</code>: Name of the snapshot to export</li>
-<li><code>--all</code>: Export all snapshots</li>
-<li><code>--compress</code>: Compress snapshots before uploading (default true)</li>
-</ul>
-<h3 id="restoring-snapshots">Restoring Snapshots<a class="headerlink" href="#restoring-snapshots" title="Permanent link">&para;</a></h3>
-<p>The <code>restore</code> command allows you to restore snapshots from cloud storage:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>restore<span class="w"> </span><span class="o">[</span>source<span class="o">]</span><span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
-</code></pre></div>
-<p>Where <code>source</code> is a URL in the format <code>s3://bucket-name/prefix/</code> or <code>gcs://bucket-name/prefix/</code>.</p>
-<h4 id="examples_1">Examples<a class="headerlink" href="#examples_1" title="Permanent link">&para;</a></h4>
-<p>Restore a specific snapshot from S3:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>restore<span class="w"> </span>s3://mybucket/flashfs-backups/<span class="w"> </span>--snapshot<span class="w"> </span>snapshot1.snap
-</code></pre></div>
-<p>Restore all snapshots from GCS:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>restore<span class="w"> </span>gcs://my-bucket-name/<span class="w"> </span>--all
-</code></pre></div>
-<h4 id="flags_1">Flags<a class="headerlink" href="#flags_1" title="Permanent link">&para;</a></h4>
-<ul>
-<li><code>--dir string</code>: Directory to restore snapshots to (default "snapshots")</li>
-<li><code>--snapshot string</code>: Name of the snapshot to restore</li>
-<li><code>--all</code>: Restore all snapshots</li>
-<li><code>--decompress</code>: Decompress snapshots after downloading (default true)</li>
-</ul>
-<h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
-<p>The cloud storage integration is implemented using the <a href="https://github.com/thanos-io/objstore">Thanos Object Storage</a> library, which provides a unified interface for interacting with different cloud storage providers.</p>
-<h3 id="compression">Compression<a class="headerlink" href="#compression" title="Permanent link">&para;</a></h3>
-<p>Snapshots are compressed using the <a href="https://github.com/klauspost/compress/tree/master/zstd">Zstandard</a> compression algorithm before being uploaded to cloud storage. This reduces the amount of data transferred and the storage space required.</p>
-<h3 id="error-handling">Error Handling<a class="headerlink" href="#error-handling" title="Permanent link">&para;</a></h3>
-<p>The cloud storage integration includes robust error handling for common issues:</p>
-<ul>
-<li>Authentication errors (missing or invalid credentials)</li>
-<li>Network connectivity issues</li>
-<li>Permission issues</li>
-<li>Storage quota issues</li>
-</ul>
-<h3 id="performance-considerations">Performance Considerations<a class="headerlink" href="#performance-considerations" title="Permanent link">&para;</a></h3>
-<ul>
-<li><strong>Streaming Uploads/Downloads</strong>: Files are streamed to/from cloud storage to minimize memory usage</li>
-<li><strong>Compression</strong>: Zstandard compression provides a good balance between compression ratio and speed</li>
-<li><strong>Parallel Processing</strong>: Multiple snapshots can be exported/restored in parallel</li>
-</ul>
-<h2 id="troubleshooting">Troubleshooting<a class="headerlink" href="#troubleshooting" title="Permanent link">&para;</a></h2>
-<h3 id="common-issues">Common Issues<a class="headerlink" href="#common-issues" title="Permanent link">&para;</a></h3>
+<p>The Buffer Pool is designed to:</p>
 <ol>
-<li><strong>Authentication Errors</strong>:</li>
-<li>Ensure that the required environment variables are set correctly</li>
-<li>
-<p>Check that the credentials have the necessary permissions</p>
-</li>
-<li>
-<p><strong>Network Issues</strong>:</p>
-</li>
-<li>Check your network connectivity</li>
-<li>
-<p>Verify that the endpoint URL is correct</p>
-</li>
-<li>
-<p><strong>Permission Issues</strong>:</p>
-</li>
-<li>
-<p>Ensure that the credentials have the necessary permissions to read/write to the bucket</p>
-</li>
-<li>
-<p><strong>Storage Quota Issues</strong>:</p>
-</li>
-<li>Check that you have sufficient storage quota in your cloud storage account</li>
+<li>Provide a pool of reusable byte slices</li>
+<li>Reduce memory allocations and garbage collection overhead</li>
+<li>Optimize performance for I/O-intensive operations</li>
+<li>Track usage metrics for monitoring and tuning</li>
+<li>Support configurable buffer sizes and pool behavior</li>
 </ol>
-<h3 id="logging">Logging<a class="headerlink" href="#logging" title="Permanent link">&para;</a></h3>
-<p>The cloud storage integration includes detailed logging to help diagnose issues. You can view the logs by running the commands with the <code>--verbose</code> flag.</p>
+<h2 id="key-components">Key Components<a class="headerlink" href="#key-components" title="Permanent link">&para;</a></h2>
+<h3 id="bufferpool">BufferPool<a class="headerlink" href="#bufferpool" title="Permanent link">&para;</a></h3>
+<p>The core component is the <code>BufferPool</code> struct, which manages a pool of byte slices:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">BufferPool</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">pool</span><span class="w">                 </span><span class="nx">sync</span><span class="p">.</span><span class="nx">Pool</span>
+<span class="w">    </span><span class="nx">size</span><span class="w">                 </span><span class="kt">int</span>
+<span class="w">    </span><span class="nx">name</span><span class="w">                 </span><span class="kt">string</span>
+<span class="w">    </span><span class="nx">metrics</span><span class="w">              </span><span class="o">*</span><span class="nx">BufferPoolMetrics</span>
+<span class="w">    </span><span class="nx">minSize</span><span class="w">              </span><span class="kt">int</span>
+<span class="w">    </span><span class="nx">maxSize</span><span class="w">              </span><span class="kt">int</span>
+<span class="w">    </span><span class="nx">shortageNotification</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="kd">struct</span><span class="p">{}</span>
+<span class="w">    </span><span class="nx">getTimeout</span><span class="w">           </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="bufferpooloptions">BufferPoolOptions<a class="headerlink" href="#bufferpooloptions" title="Permanent link">&para;</a></h3>
+<p>The behavior of a buffer pool can be configured using the <code>BufferPoolOptions</code> struct:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">BufferPoolOptions</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">BufferSize</span><span class="w">           </span><span class="kt">int</span><span class="w">           </span><span class="c1">// Initial and default buffer size</span>
+<span class="w">    </span><span class="nx">MinBufferSize</span><span class="w">        </span><span class="kt">int</span><span class="w">           </span><span class="c1">// Minimum buffer size to accept back into the pool</span>
+<span class="w">    </span><span class="nx">MaxBufferSize</span><span class="w">        </span><span class="kt">int</span><span class="w">           </span><span class="c1">// Maximum buffer size to create</span>
+<span class="w">    </span><span class="nx">PoolName</span><span class="w">             </span><span class="kt">string</span><span class="w">        </span><span class="c1">// Name for the pool (for metrics/logging)</span>
+<span class="w">    </span><span class="nx">ShortageNotification</span><span class="w"> </span><span class="kd">chan</span><span class="w"> </span><span class="kd">struct</span><span class="p">{}</span><span class="w"> </span><span class="c1">// Channel for communicating buffer supply shortages</span>
+<span class="w">    </span><span class="nx">GetTimeout</span><span class="w">           </span><span class="nx">time</span><span class="p">.</span><span class="nx">Duration</span><span class="w"> </span><span class="c1">// Timeout for waiting on a buffer</span>
+<span class="p">}</span>
+</code></pre></div>
+<h3 id="bufferpoolmetrics">BufferPoolMetrics<a class="headerlink" href="#bufferpoolmetrics" title="Permanent link">&para;</a></h3>
+<p>The <code>BufferPoolMetrics</code> struct tracks usage statistics for a buffer pool:</p>
+<div class="highlight"><pre><span></span><code><span class="kd">type</span><span class="w"> </span><span class="nx">BufferPoolMetrics</span><span class="w"> </span><span class="kd">struct</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">Gets</span><span class="w">              </span><span class="kt">uint64</span>
+<span class="w">    </span><span class="nx">Puts</span><span class="w">              </span><span class="kt">uint64</span>
+<span class="w">    </span><span class="nx">NewAllocations</span><span class="w">    </span><span class="kt">uint64</span>
+<span class="w">    </span><span class="nx">ResizeAllocations</span><span class="w"> </span><span class="kt">uint64</span>
+<span class="w">    </span><span class="nx">RejectedBuffers</span><span class="w">   </span><span class="kt">uint64</span>
+<span class="w">    </span><span class="nx">Size</span><span class="w">              </span><span class="kt">int</span>
+<span class="w">    </span><span class="nx">Timeouts</span><span class="w">          </span><span class="kt">uint64</span>
+<span class="w">    </span><span class="nx">Name</span><span class="w">              </span><span class="kt">string</span>
+<span class="p">}</span>
+</code></pre></div>
+<h2 id="core-functions">Core Functions<a class="headerlink" href="#core-functions" title="Permanent link">&para;</a></h2>
+<h3 id="creating-and-using-a-buffer-pool">Creating and Using a Buffer Pool<a class="headerlink" href="#creating-and-using-a-buffer-pool" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1">// Create a new buffer pool with custom options</span>
+<span class="nx">options</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">DefaultBufferPoolOptions</span><span class="p">()</span>
+<span class="nx">options</span><span class="p">.</span><span class="nx">BufferSize</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="mi">32</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="c1">// 32MB buffers</span>
+<span class="nx">options</span><span class="p">.</span><span class="nx">PoolName</span><span class="w"> </span><span class="p">=</span><span class="w"> </span><span class="s">&quot;large-file-pool&quot;</span>
+<span class="nx">pool</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">NewBufferPool</span><span class="p">(</span><span class="nx">options</span><span class="p">)</span>
+
+<span class="c1">// Get a buffer from the pool</span>
+<span class="nx">buffer</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">pool</span><span class="p">.</span><span class="nx">Get</span><span class="p">()</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Handle error</span>
+<span class="p">}</span>
+
+<span class="c1">// Use the buffer for I/O operations</span>
+<span class="c1">// ...</span>
+
+<span class="c1">// Return the buffer to the pool when done</span>
+<span class="nx">pool</span><span class="p">.</span><span class="nx">Put</span><span class="p">(</span><span class="nx">buffer</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="using-the-default-buffer-pool">Using the Default Buffer Pool<a class="headerlink" href="#using-the-default-buffer-pool" title="Permanent link">&para;</a></h3>
+<p>FlashFS provides a default buffer pool for convenience:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Get a buffer from the default pool</span>
+<span class="nx">buffer</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">GetBuffer</span><span class="p">()</span>
+<span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Handle error</span>
+<span class="p">}</span>
+
+<span class="c1">// Use the buffer</span>
+<span class="c1">// ...</span>
+
+<span class="c1">// Return the buffer to the default pool</span>
+<span class="nx">hash</span><span class="p">.</span><span class="nx">PutBuffer</span><span class="p">(</span><span class="nx">buffer</span><span class="p">)</span>
+</code></pre></div>
+<h2 id="buffer-management">Buffer Management<a class="headerlink" href="#buffer-management" title="Permanent link">&para;</a></h2>
+<p>The buffer pool implements several strategies to efficiently manage memory:</p>
+<ol>
+<li><strong>Buffer Reuse</strong>: Buffers are returned to the pool after use and reused for subsequent operations</li>
+<li><strong>Size Management</strong>: Buffers that are too small are rejected, while oversized buffers are trimmed</li>
+<li><strong>Timeout Handling</strong>: Optional timeouts prevent blocking when buffers are scarce</li>
+<li><strong>Shortage Notification</strong>: Optional channel notifications when buffer demand exceeds supply</li>
+</ol>
+<h2 id="performance-considerations">Performance Considerations<a class="headerlink" href="#performance-considerations" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Buffer Size</strong>: Larger buffers improve throughput for sequential I/O but consume more memory</li>
+<li><strong>Pool Size</strong>: The pool automatically grows and shrinks based on demand</li>
+<li><strong>Concurrency</strong>: The buffer pool is thread-safe and can be used from multiple goroutines</li>
+<li><strong>Memory Pressure</strong>: Monitor metrics to detect memory pressure and adjust buffer sizes accordingly</li>
+</ul>
+<h2 id="metrics-and-monitoring">Metrics and Monitoring<a class="headerlink" href="#metrics-and-monitoring" title="Permanent link">&para;</a></h2>
+<p>The buffer pool provides detailed metrics to help monitor and tune performance:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Get metrics from a buffer pool</span>
+<span class="nx">metrics</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">pool</span><span class="p">.</span><span class="nx">Metrics</span><span class="p">()</span>
+<span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">metrics</span><span class="p">.</span><span class="nx">String</span><span class="p">())</span>
+
+<span class="c1">// Output:</span>
+<span class="c1">// BufferPool &#39;large-file-pool&#39; Metrics:</span>
+<span class="c1">//   Gets:               1250</span>
+<span class="c1">//   Puts:               1248</span>
+<span class="c1">//   New Allocations:    10</span>
+<span class="c1">//   Resize Allocations: 2</span>
+<span class="c1">//   Rejected Buffers:   5</span>
+<span class="c1">//   Size:               33554432</span>
+<span class="c1">//   Timeouts:           0</span>
+</code></pre></div>
+<h2 id="example-usage">Example Usage<a class="headerlink" href="#example-usage" title="Permanent link">&para;</a></h2>
+<div class="highlight"><pre><span></span><code><span class="c1">// Create a custom buffer pool for large file operations</span>
+<span class="nx">largeFilePool</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">NewBufferPool</span><span class="p">(</span><span class="nx">hash</span><span class="p">.</span><span class="nx">BufferPoolOptions</span><span class="p">{</span>
+<span class="w">    </span><span class="nx">BufferSize</span><span class="p">:</span><span class="w">    </span><span class="mi">64</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w"> </span><span class="c1">// 64MB</span>
+<span class="w">    </span><span class="nx">MinBufferSize</span><span class="p">:</span><span class="w"> </span><span class="mi">32</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w"> </span><span class="c1">// 32MB</span>
+<span class="w">    </span><span class="nx">MaxBufferSize</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">1024</span><span class="p">,</span><span class="w"> </span><span class="c1">// 128MB</span>
+<span class="w">    </span><span class="nx">PoolName</span><span class="p">:</span><span class="w">      </span><span class="s">&quot;large-file-pool&quot;</span><span class="p">,</span>
+<span class="w">    </span><span class="nx">GetTimeout</span><span class="p">:</span><span class="w">    </span><span class="mi">5</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="nx">time</span><span class="p">.</span><span class="nx">Second</span><span class="p">,</span>
+<span class="p">})</span>
+
+<span class="c1">// Process multiple files using the pool</span>
+<span class="k">for</span><span class="w"> </span><span class="nx">_</span><span class="p">,</span><span class="w"> </span><span class="nx">filePath</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">filePaths</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Get a buffer from the pool</span>
+<span class="w">    </span><span class="nx">buffer</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">largeFilePool</span><span class="p">.</span><span class="nx">Get</span><span class="p">()</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Failed to get buffer: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">        </span><span class="k">continue</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Use the buffer for file processing</span>
+<span class="w">    </span><span class="nx">file</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">os</span><span class="p">.</span><span class="nx">Open</span><span class="p">(</span><span class="nx">filePath</span><span class="p">)</span>
+<span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="nx">err</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="kc">nil</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="nx">largeFilePool</span><span class="p">.</span><span class="nx">Put</span><span class="p">(</span><span class="nx">buffer</span><span class="p">)</span><span class="w"> </span><span class="c1">// Return buffer to pool</span>
+<span class="w">        </span><span class="nx">log</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Failed to open file: %v&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">err</span><span class="p">)</span>
+<span class="w">        </span><span class="k">continue</span>
+<span class="w">    </span><span class="p">}</span>
+
+<span class="w">    </span><span class="c1">// Process the file using the buffer</span>
+<span class="w">    </span><span class="c1">// ...</span>
+
+<span class="w">    </span><span class="nx">file</span><span class="p">.</span><span class="nx">Close</span><span class="p">()</span>
+
+<span class="w">    </span><span class="c1">// Return the buffer to the pool</span>
+<span class="w">    </span><span class="nx">largeFilePool</span><span class="p">.</span><span class="nx">Put</span><span class="p">(</span><span class="nx">buffer</span><span class="p">)</span>
+<span class="p">}</span>
+
+<span class="c1">// Print metrics</span>
+<span class="nx">fmt</span><span class="p">.</span><span class="nx">Println</span><span class="p">(</span><span class="nx">largeFilePool</span><span class="p">.</span><span class="nx">Metrics</span><span class="p">().</span><span class="nx">String</span><span class="p">())</span>
+</code></pre></div>
+<h2 id="integration-with-hash-module">Integration with Hash Module<a class="headerlink" href="#integration-with-hash-module" title="Permanent link">&para;</a></h2>
+<p>The Buffer Pool is tightly integrated with the Hash module to optimize memory usage during hashing operations:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// The hash.File function automatically uses the buffer pool</span>
+<span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">File</span><span class="p">(</span><span class="nx">path</span><span class="p">,</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">DefaultOptions</span><span class="p">())</span>
+
+<span class="c1">// The hash.Reader function also uses the buffer pool</span>
+<span class="nx">result</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">Reader</span><span class="p">(</span><span class="nx">reader</span><span class="p">,</span><span class="w"> </span><span class="nx">hash</span><span class="p">.</span><span class="nx">BLAKE3</span><span class="p">)</span>
+</code></pre></div>
 
 
 

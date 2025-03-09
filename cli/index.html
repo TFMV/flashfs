@@ -265,6 +265,10 @@
       
         
       
+        
+      
+        
+      
     
     
     
@@ -424,6 +428,50 @@
   
   <span class="md-ellipsis">
     Cloud Storage
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../hash/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Hash
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../buffer-pool/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Buffer Pool
     
   </span>
   
@@ -594,8 +642,8 @@
 </code></pre></div>
 <h2 id="global-flags">Global Flags<a class="headerlink" href="#global-flags" title="Permanent link">&para;</a></h2>
 <p>These flags apply to all commands:</p>
-<div class="highlight"><pre><span></span><code>--help, -h     Show help for a command
---verbose, -v  Enable verbose output
+<div class="highlight"><pre><span></span><code>--help,<span class="w"> </span>-h<span class="w">     </span>Show<span class="w"> </span><span class="nb">help</span><span class="w"> </span><span class="k">for</span><span class="w"> </span>a<span class="w"> </span><span class="nb">command</span>
+--verbose,<span class="w"> </span>-v<span class="w">  </span>Enable<span class="w"> </span>verbose<span class="w"> </span>output
 </code></pre></div>
 <h2 id="snapshot-command">Snapshot Command<a class="headerlink" href="#snapshot-command" title="Permanent link">&para;</a></h2>
 <p>Create a snapshot of a directory.</p>
@@ -605,8 +653,16 @@
 <div class="highlight"><pre><span></span><code>--path,<span class="w"> </span>-p<span class="w"> </span>string<span class="w">     </span>Directory<span class="w"> </span>to<span class="w"> </span>snapshot<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
 --output,<span class="w"> </span>-o<span class="w"> </span>string<span class="w">   </span>Output<span class="w"> </span>snapshot<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
 --exclude<span class="w"> </span>string<span class="w">      </span>Exclude<span class="w"> </span>pattern<span class="w"> </span><span class="o">(</span>e.g.,<span class="w"> </span><span class="s2">&quot;*.tmp,*.log&quot;</span><span class="o">)</span>
---no-hash<span class="w">             </span>Skip<span class="w"> </span>file<span class="w"> </span>content<span class="w"> </span>hashing
 </code></pre></div>
+<h3 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h3>
+<p>The snapshot command uses the streaming walker implementation (<code>WalkStreamWithCallback</code>) to efficiently process large directory structures. This provides several benefits:</p>
+<ol>
+<li><strong>Memory Efficiency</strong>: Files are processed as they're discovered, keeping memory usage relatively constant regardless of directory size.</li>
+<li><strong>Progress Reporting</strong>: The command shows real-time progress updates as files are processed.</li>
+<li><strong>Responsiveness</strong>: Users see immediate feedback rather than waiting for the entire walk to complete.</li>
+<li><strong>Cancellation Support</strong>: The operation can be cleanly cancelled with Ctrl+C.</li>
+</ol>
+<p>This makes the snapshot command suitable for very large directory structures, as it avoids loading all file metadata into memory at once.</p>
 <h3 id="examples">Examples<a class="headerlink" href="#examples" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Create a snapshot of the current directory</span>
 flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class="w"> </span>.<span class="w"> </span>--output<span class="w"> </span>backup.snap
@@ -622,13 +678,13 @@ flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class
 <div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
 <h3 id="flags_1">Flags<a class="headerlink" href="#flags_1" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>--base, -b string     Base snapshot file (required)
---target, -t string   Target snapshot file (required)
---output, -o string   Output diff file (required)
---detailed            Perform detailed comparison including file content hashes
---parallel int        Number of parallel workers for comparison (default: number of CPU cores)
---no-hash             Skip hash comparison (faster but less accurate)
---path-filter string  Only compare files matching the specified path pattern
+<div class="highlight"><pre><span></span><code>--base,<span class="w"> </span>-b<span class="w"> </span>string<span class="w">     </span>Base<span class="w"> </span>snapshot<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--target,<span class="w"> </span>-t<span class="w"> </span>string<span class="w">   </span>Target<span class="w"> </span>snapshot<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--output,<span class="w"> </span>-o<span class="w"> </span>string<span class="w">   </span>Output<span class="w"> </span>diff<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--detailed<span class="w">            </span>Perform<span class="w"> </span>detailed<span class="w"> </span>comparison<span class="w"> </span>including<span class="w"> </span>file<span class="w"> </span>content<span class="w"> </span>hashes
+--parallel<span class="w"> </span>int<span class="w">        </span>Number<span class="w"> </span>of<span class="w"> </span>parallel<span class="w"> </span>workers<span class="w"> </span><span class="k">for</span><span class="w"> </span>comparison<span class="w"> </span><span class="o">(</span>default:<span class="w"> </span>number<span class="w"> </span>of<span class="w"> </span>CPU<span class="w"> </span>cores<span class="o">)</span>
+--no-hash<span class="w">             </span>Skip<span class="w"> </span><span class="nb">hash</span><span class="w"> </span>comparison<span class="w"> </span><span class="o">(</span>faster<span class="w"> </span>but<span class="w"> </span>less<span class="w"> </span>accurate<span class="o">)</span>
+--path-filter<span class="w"> </span>string<span class="w">  </span>Only<span class="w"> </span>compare<span class="w"> </span>files<span class="w"> </span>matching<span class="w"> </span>the<span class="w"> </span>specified<span class="w"> </span>path<span class="w"> </span>pattern
 </code></pre></div>
 <h3 id="examples_1">Examples<a class="headerlink" href="#examples_1" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Compute differences between two snapshots</span>
@@ -768,7 +824,7 @@ flashfs<span class="w"> </span>expiry<span class="w"> </span>show
 <span class="c1"># Show the policy for snapshots in a specific directory</span>
 flashfs<span class="w"> </span>expiry<span class="w"> </span>show<span class="w"> </span>--dir<span class="w"> </span>/path/to/snapshots
 </code></pre></div>
-<h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
+<h2 id="implementation-details_1">Implementation Details<a class="headerlink" href="#implementation-details_1" title="Permanent link">&para;</a></h2>
 <h3 id="command-registration">Command Registration<a class="headerlink" href="#command-registration" title="Permanent link">&para;</a></h3>
 <p>Commands are registered in the <code>cmd</code> package:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">init</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -853,7 +909,7 @@ find<span class="w"> </span>/home<span class="w"> </span>-type<span class="w"> <
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 5, 2025 11:26:34">March 5, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 9, 2025 01:23:01">March 9, 2025</span>
   </span>
 
     
