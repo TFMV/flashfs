@@ -1009,32 +1009,62 @@ flashfs<span class="w"> </span>apply<span class="w"> </span>--base<span class="w
 </ol>
 <p>This structured approach ensures that changes are applied correctly and efficiently, maintaining the integrity of your file system representation.</p>
 <h2 id="query-command">Query Command<a class="headerlink" href="#query-command" title="Permanent link">&para;</a></h2>
-<p>Query snapshot contents.</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>query<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+<p>Query snapshots for files matching various criteria.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>query<span class="w"> </span><span class="o">[</span>command<span class="o">]</span><span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
-<h3 id="flags_5">Flags<a class="headerlink" href="#flags_5" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code>--snapshot, -s string       Snapshot file to query (required)
---path string               Path pattern to filter by (e.g., &quot;/home/user/*&quot;)
---modified-after string     Show files modified after this date (format: YYYY-MM-DD)
---modified-before string    Show files modified before this date (format: YYYY-MM-DD)
---size-gt int               Show files larger than this size (in bytes)
---size-lt int               Show files smaller than this size (in bytes)
---is-dir                    Show only directories
---is-file                   Show only files
---format string             Output format: text, json, csv (default &quot;text&quot;)
+<h3 id="available-commands_1">Available Commands<a class="headerlink" href="#available-commands_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>query<span class="w">             </span>Query<span class="w"> </span>snapshots<span class="w"> </span><span class="k">for</span><span class="w"> </span>files<span class="w"> </span>matching<span class="w"> </span>criteria
+find-duplicates<span class="w">   </span>Find<span class="w"> </span>duplicate<span class="w"> </span>files<span class="w"> </span>across<span class="w"> </span>snapshots
+find-changes<span class="w">      </span>Find<span class="w"> </span>files<span class="w"> </span>that<span class="w"> </span>changed<span class="w"> </span>between<span class="w"> </span>snapshots
+find-largest<span class="w">      </span>Find<span class="w"> </span>the<span class="w"> </span>N<span class="w"> </span>largest<span class="w"> </span>files<span class="w"> </span><span class="k">in</span><span class="w"> </span>a<span class="w"> </span>snapshot
+</code></pre></div>
+<h3 id="query-flags">Query Flags<a class="headerlink" href="#query-flags" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>--dir<span class="w"> </span>string<span class="w">          </span>Base<span class="w"> </span>directory<span class="w"> </span>containing<span class="w"> </span>snapshots<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--pattern<span class="w"> </span>string<span class="w">      </span>File<span class="w"> </span>pattern<span class="w"> </span>to<span class="w"> </span>match
+--min-size<span class="w"> </span>string<span class="w">    </span>Minimum<span class="w"> </span>file<span class="w"> </span>size<span class="w"> </span><span class="o">(</span>e.g.,<span class="w"> </span><span class="s2">&quot;1MB&quot;</span><span class="o">)</span>
+--max-size<span class="w"> </span>string<span class="w">    </span>Maximum<span class="w"> </span>file<span class="w"> </span>size<span class="w"> </span><span class="o">(</span>e.g.,<span class="w"> </span><span class="s2">&quot;1GB&quot;</span><span class="o">)</span>
+--start-time<span class="w"> </span>string<span class="w">  </span>Start<span class="w"> </span><span class="nb">time</span><span class="w"> </span><span class="o">(</span>RFC3339<span class="o">)</span>
+--end-time<span class="w"> </span>string<span class="w">    </span>End<span class="w"> </span><span class="nb">time</span><span class="w"> </span><span class="o">(</span>RFC3339<span class="o">)</span>
+--hash<span class="w"> </span>string<span class="w">        </span>File<span class="w"> </span><span class="nb">hash</span><span class="w"> </span>to<span class="w"> </span>match
+--is-dir<span class="w">            </span>Match<span class="w"> </span>directories<span class="w"> </span>only
+--all-snapshots<span class="w">     </span>Query<span class="w"> </span>all<span class="w"> </span>snapshots
+--snapshot<span class="w"> </span>string<span class="w">    </span>Snapshot<span class="w"> </span>ID<span class="w"> </span>to<span class="w"> </span>query
+</code></pre></div>
+<h3 id="find-duplicates-flags">Find Duplicates Flags<a class="headerlink" href="#find-duplicates-flags" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>--dir<span class="w"> </span>string<span class="w">         </span>Base<span class="w"> </span>directory<span class="w"> </span>containing<span class="w"> </span>snapshots<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--snapshots<span class="w"> </span>strings<span class="w">  </span>Snapshot<span class="w"> </span>IDs<span class="w"> </span>to<span class="w"> </span>search
+--pattern<span class="w"> </span>string<span class="w">     </span>File<span class="w"> </span>pattern<span class="w"> </span>to<span class="w"> </span>match
+</code></pre></div>
+<h3 id="find-changes-flags">Find Changes Flags<a class="headerlink" href="#find-changes-flags" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>--dir<span class="w"> </span>string<span class="w">      </span>Base<span class="w"> </span>directory<span class="w"> </span>containing<span class="w"> </span>snapshots<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--old<span class="w"> </span>string<span class="w">      </span>Old<span class="w"> </span>snapshot<span class="w"> </span>ID<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--new<span class="w"> </span>string<span class="w">      </span>New<span class="w"> </span>snapshot<span class="w"> </span>ID<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--pattern<span class="w"> </span>string<span class="w">  </span>File<span class="w"> </span>pattern<span class="w"> </span>to<span class="w"> </span>match
+</code></pre></div>
+<h3 id="find-largest-flags">Find Largest Flags<a class="headerlink" href="#find-largest-flags" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>--dir<span class="w"> </span>string<span class="w">       </span>Base<span class="w"> </span>directory<span class="w"> </span>containing<span class="w"> </span>snapshots<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--snapshot<span class="w"> </span>string<span class="w">  </span>Snapshot<span class="w"> </span>ID<span class="w"> </span>to<span class="w"> </span>query<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--n<span class="w"> </span>int<span class="w">           </span>Number<span class="w"> </span>of<span class="w"> </span>files<span class="w"> </span>to<span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="o">(</span>default<span class="w"> </span><span class="m">10</span><span class="o">)</span>
+--pattern<span class="w"> </span>string<span class="w">  </span>File<span class="w"> </span>pattern<span class="w"> </span>to<span class="w"> </span>match
 </code></pre></div>
 <h3 id="examples_5">Examples<a class="headerlink" href="#examples_5" title="Permanent link">&para;</a></h3>
-<div class="highlight"><pre><span></span><code><span class="c1"># List all files in a snapshot</span>
-flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap
+<div class="highlight"><pre><span></span><code><span class="c1"># Query files in a snapshot</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>--dir<span class="w"> </span>~/.flashfs<span class="w"> </span>--snapshot<span class="w"> </span>my-snapshot<span class="w"> </span>--pattern<span class="w"> </span><span class="s2">&quot;*.txt&quot;</span>
 
-<span class="c1"># Find large files modified recently</span>
-flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap<span class="w"> </span>--size-gt<span class="w"> </span><span class="m">10485760</span><span class="w"> </span>--modified-after<span class="w"> </span><span class="s2">&quot;2023-01-01&quot;</span>
+<span class="c1"># Query files by size range</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>--dir<span class="w"> </span>~/.flashfs<span class="w"> </span>--snapshot<span class="w"> </span>my-snapshot<span class="w"> </span>--min-size<span class="w"> </span>1MB<span class="w"> </span>--max-size<span class="w"> </span>10MB
 
-<span class="c1"># Find all .log files in a specific directory</span>
-flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap<span class="w"> </span>--path<span class="w"> </span><span class="s2">&quot;/var/log/*.log&quot;</span>
+<span class="c1"># Query files by modification time</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>--dir<span class="w"> </span>~/.flashfs<span class="w"> </span>--snapshot<span class="w"> </span>my-snapshot<span class="w"> </span>--start-time<span class="w"> </span><span class="s2">&quot;2024-01-01T00:00:00Z&quot;</span><span class="w"> </span>--end-time<span class="w"> </span><span class="s2">&quot;2024-02-01T00:00:00Z&quot;</span>
 
-<span class="c1"># Export results as JSON</span>
-flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap<span class="w"> </span>--path<span class="w"> </span><span class="s2">&quot;*.mp4&quot;</span><span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span>&gt;<span class="w"> </span>videos.json
+<span class="c1"># Find duplicate files across snapshots</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>find-duplicates<span class="w"> </span>--dir<span class="w"> </span>~/.flashfs<span class="w"> </span>--snapshots<span class="w"> </span><span class="s2">&quot;snap1,snap2,snap3&quot;</span>
+
+<span class="c1"># Find files that changed between snapshots</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>find-changes<span class="w"> </span>--dir<span class="w"> </span>~/.flashfs<span class="w"> </span>--old<span class="w"> </span>snap1<span class="w"> </span>--new<span class="w"> </span>snap2
+
+<span class="c1"># Find the 20 largest files in a snapshot</span>
+flashfs<span class="w"> </span>query<span class="w"> </span>find-largest<span class="w"> </span>--dir<span class="w"> </span>~/.flashfs<span class="w"> </span>--snapshot<span class="w"> </span>my-snapshot<span class="w"> </span>--n<span class="w"> </span><span class="m">20</span>
 </code></pre></div>
 <h2 id="expiry-command">Expiry Command<a class="headerlink" href="#expiry-command" title="Permanent link">&para;</a></h2>
 <p>Manage snapshot expiry policies.</p>
@@ -1045,7 +1075,7 @@ flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span clas
 <p>Set the expiry policy for snapshots.</p>
 <div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">set</span><span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
-<h5 id="flags_6">Flags<a class="headerlink" href="#flags_6" title="Permanent link">&para;</a></h5>
+<h5 id="flags_5">Flags<a class="headerlink" href="#flags_5" title="Permanent link">&para;</a></h5>
 <div class="highlight"><pre><span></span><code>--max-snapshots int    Maximum number of snapshots to keep (0 = unlimited)
 --max-age string       Maximum age of snapshots to keep (e.g., 30d, 2w, 6m, 1y)
 --keep-hourly int      Number of hourly snapshots to keep
@@ -1073,7 +1103,7 @@ flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">se
 <p>Apply the current expiry policy to snapshots.</p>
 <div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span>apply<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
-<h5 id="flags_7">Flags<a class="headerlink" href="#flags_7" title="Permanent link">&para;</a></h5>
+<h5 id="flags_6">Flags<a class="headerlink" href="#flags_6" title="Permanent link">&para;</a></h5>
 <div class="highlight"><pre><span></span><code>--dir string  Base directory for snapshots (default: current directory)
 </code></pre></div>
 <h5 id="examples_7">Examples<a class="headerlink" href="#examples_7" title="Permanent link">&para;</a></h5>
@@ -1087,7 +1117,7 @@ flashfs<span class="w"> </span>expiry<span class="w"> </span>apply<span class="w
 <p>Show the current expiry policy.</p>
 <div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span>show<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
-<h5 id="flags_8">Flags<a class="headerlink" href="#flags_8" title="Permanent link">&para;</a></h5>
+<h5 id="flags_7">Flags<a class="headerlink" href="#flags_7" title="Permanent link">&para;</a></h5>
 <div class="highlight"><pre><span></span><code>--dir string  Base directory for snapshots (default: current directory)
 </code></pre></div>
 <h5 id="examples_8">Examples<a class="headerlink" href="#examples_8" title="Permanent link">&para;</a></h5>
@@ -1182,7 +1212,7 @@ find<span class="w"> </span>/home<span class="w"> </span>-type<span class="w"> <
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 9, 2025 02:29:07">March 9, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 9, 2025 07:06:20">March 9, 2025</span>
   </span>
 
     
