@@ -13,6 +13,8 @@
       
       
       
+        <link rel="prev" href="../expiry-policy/">
+      
       
       
       <link rel="icon" href="../assets/images/favicon.png">
@@ -20,7 +22,7 @@
     
     
       
-        <title>FlashFS v0.1.0 Release Notes - FlashFS Documentation</title>
+        <title>Streaming Processing - FlashFS Documentation</title>
       
     
     
@@ -105,7 +107,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              FlashFS v0.1.0 Release Notes
+              Streaming Processing
             
           </span>
         </div>
@@ -631,8 +633,10 @@
       
   
   
+    
   
   
+  
     
     
       
@@ -645,13 +649,11 @@
     
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" checked>
         
           
           <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
@@ -666,7 +668,7 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_3">
             <span class="md-nav__icon md-icon"></span>
             Features
@@ -721,10 +723,17 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../streaming/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   <span class="md-ellipsis">
@@ -734,6 +743,7 @@
   
 
       </a>
+      
     </li>
   
 
@@ -781,92 +791,131 @@
   
 
 
-<h1 id="flashfs-v010-release-notes">FlashFS v0.1.0 Release Notes<a class="headerlink" href="#flashfs-v010-release-notes" title="Permanent link">&para;</a></h1>
-<p>FlashFS is a high-performance file system snapshot and diff tool designed for efficiently tracking and managing changes across file systems over time.</p>
-<h2 id="overview">Overview<a class="headerlink" href="#overview" title="Permanent link">&para;</a></h2>
-<p>FlashFS v0.1.0 provides a robust foundation for creating, comparing, and managing file system snapshots with a focus on performance and efficiency. This release introduces the core functionality and architecture that will serve as the basis for future enhancements.</p>
-<h2 id="key-features">Key Features<a class="headerlink" href="#key-features" title="Permanent link">&para;</a></h2>
-<h3 id="snapshot-management">Snapshot Management<a class="headerlink" href="#snapshot-management" title="Permanent link">&para;</a></h3>
+<h1 id="streaming-processing">Streaming Processing<a class="headerlink" href="#streaming-processing" title="Permanent link">&para;</a></h1>
+<p>FlashFS implements streaming processing capabilities throughout its architecture to efficiently handle very large datasets that wouldn't fit entirely in memory. This approach enables processing of massive file systems with minimal memory footprint while maintaining high performance.</p>
+<h2 id="core-streaming-components">Core Streaming Components<a class="headerlink" href="#core-streaming-components" title="Permanent link">&para;</a></h2>
+<p>FlashFS implements streaming in several key components:</p>
+<h3 id="streaming-directory-walker">Streaming Directory Walker<a class="headerlink" href="#streaming-directory-walker" title="Permanent link">&para;</a></h3>
+<p>The directory walker processes files as they're discovered, rather than collecting all files before processing:</p>
 <ul>
-<li><strong>Fast Snapshot Creation</strong>: Efficiently capture the state of your file system with parallel processing</li>
-<li><strong>Content-Based Deduplication</strong>: Use BLAKE3 hashing for accurate file identification</li>
-<li><strong>Configurable Compression</strong>: Balance speed and size with zstd compression</li>
-<li><strong>Intelligent Caching</strong>: Optimize performance for frequently accessed snapshots</li>
+<li><strong>Memory Efficiency</strong>: Only keeps necessary metadata in memory</li>
+<li><strong>Responsiveness</strong>: Provides immediate feedback as files are processed</li>
+<li><strong>Parallel Processing</strong>: Can process multiple directories concurrently</li>
 </ul>
-<h3 id="diff-computation">Diff Computation<a class="headerlink" href="#diff-computation" title="Permanent link">&para;</a></h3>
+<h3 id="streaming-serialization">Streaming Serialization<a class="headerlink" href="#streaming-serialization" title="Permanent link">&para;</a></h3>
+<p>The serializer breaks large datasets into manageable chunks:</p>
 <ul>
-<li><strong>Structured Diff Format</strong>: Clear representation of added, modified, and deleted files</li>
-<li><strong>Bloom Filter Pre-filtering</strong>: Quickly identify potential changes between snapshots</li>
-<li><strong>Parallel Processing</strong>: Distribute comparison work across multiple CPU cores</li>
-<li><strong>Path Filtering</strong>: Focus comparisons on specific directories or file patterns</li>
+<li><strong>Chunked Processing</strong>: Divides data into fixed-size chunks</li>
+<li><strong>Progress Tracking</strong>: Reports progress as chunks are processed</li>
+<li><strong>Parallel Processing</strong>: Enables concurrent processing of chunks</li>
 </ul>
-<h3 id="snapshot-lifecycle-management">Snapshot Lifecycle Management<a class="headerlink" href="#snapshot-lifecycle-management" title="Permanent link">&para;</a></h3>
+<h3 id="streaming-diff-computation">Streaming Diff Computation<a class="headerlink" href="#streaming-diff-computation" title="Permanent link">&para;</a></h3>
+<p>The diff engine can compute differences between snapshots in a streaming fashion:</p>
 <ul>
-<li><strong>Flexible Expiry Policies</strong>: Configure retention based on time periods and snapshot counts</li>
-<li><strong>Time-Based Retention</strong>: Keep hourly, daily, weekly, monthly, and yearly snapshots</li>
-<li><strong>Count-Based Retention</strong>: Limit the total number of snapshots</li>
-<li><strong>Age-Based Cleanup</strong>: Automatically remove snapshots older than a specified age</li>
+<li><strong>Incremental Comparison</strong>: Compares entries as they're read</li>
+<li><strong>Memory-Efficient</strong>: Doesn't require loading entire snapshots into memory</li>
+<li><strong>Early Termination</strong>: Can stop processing when specific conditions are met</li>
 </ul>
-<h3 id="query-capabilities">Query Capabilities<a class="headerlink" href="#query-capabilities" title="Permanent link">&para;</a></h3>
+<h2 id="benefits-of-streaming">Benefits of Streaming<a class="headerlink" href="#benefits-of-streaming" title="Permanent link">&para;</a></h2>
+<h3 id="memory-efficiency">Memory Efficiency<a class="headerlink" href="#memory-efficiency" title="Permanent link">&para;</a></h3>
+<p>Streaming processing dramatically reduces memory requirements:</p>
 <ul>
-<li><strong>Path Pattern Matching</strong>: Find files matching specific patterns</li>
-<li><strong>Metadata Filtering</strong>: Filter by modification time, size, and file type</li>
-<li><strong>Multiple Output Formats</strong>: Export results as text, JSON, or CSV</li>
+<li><strong>Constant Memory Usage</strong>: Memory consumption doesn't grow with dataset size</li>
+<li><strong>Resource Optimization</strong>: Efficient use of system resources</li>
+<li><strong>Large Dataset Support</strong>: Can handle file systems with millions of files</li>
 </ul>
-<h2 id="technical-highlights">Technical Highlights<a class="headerlink" href="#technical-highlights" title="Permanent link">&para;</a></h2>
+<h3 id="performance">Performance<a class="headerlink" href="#performance" title="Permanent link">&para;</a></h3>
+<p>Streaming improves performance in several ways:</p>
 <ul>
-<li><strong>Efficient Binary Serialization</strong>: Using FlatBuffers for compact representation and fast access</li>
-<li><strong>Minimal Memory Usage</strong>: Streaming processing for handling large file systems</li>
-<li><strong>Thread Safety</strong>: Concurrent operations with proper synchronization</li>
-<li><strong>Comprehensive CLI</strong>: Full-featured command-line interface built with Cobra</li>
+<li><strong>Reduced Latency</strong>: Start processing immediately without waiting for complete data</li>
+<li><strong>Parallel Processing</strong>: Process multiple chunks concurrently</li>
+<li><strong>I/O Optimization</strong>: Overlap I/O operations with processing</li>
 </ul>
-<h2 id="documentation">Documentation<a class="headerlink" href="#documentation" title="Permanent link">&para;</a></h2>
-<p>Comprehensive documentation is available at <a href="https://TFMV.github.io/flashfs/">https://TFMV.github.io/flashfs/</a>, including:</p>
+<h3 id="user-experience">User Experience<a class="headerlink" href="#user-experience" title="Permanent link">&para;</a></h3>
+<p>Streaming enhances the user experience:</p>
 <ul>
-<li>Component overviews</li>
-<li>Command references</li>
-<li>Usage examples</li>
-<li>Implementation details</li>
-<li>Performance considerations</li>
+<li><strong>Progress Reporting</strong>: Provide real-time feedback on long-running operations</li>
+<li><strong>Responsiveness</strong>: Application remains responsive during processing</li>
+<li><strong>Cancellation</strong>: Operations can be cancelled mid-stream</li>
 </ul>
-<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
-<div class="highlight"><pre><span></span><code>go<span class="w"> </span>install<span class="w"> </span>github.com/TFMV/flashfs@latest
+<h2 id="implementation-details">Implementation Details<a class="headerlink" href="#implementation-details" title="Permanent link">&para;</a></h2>
+<h3 id="chunk-based-processing">Chunk-Based Processing<a class="headerlink" href="#chunk-based-processing" title="Permanent link">&para;</a></h3>
+<p>FlashFS uses a chunk-based approach for streaming:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Process data in chunks</span>
+<span class="nx">err</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">processor</span><span class="p">.</span><span class="nx">ProcessStream</span><span class="p">(</span><span class="nx">reader</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">chunk</span><span class="w"> </span><span class="nx">Chunk</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="c1">// Process this chunk</span>
+<span class="w">    </span><span class="nx">processChunk</span><span class="p">(</span><span class="nx">chunk</span><span class="p">.</span><span class="nx">Data</span><span class="p">)</span>
+
+<span class="w">    </span><span class="c1">// Report progress</span>
+<span class="w">    </span><span class="nx">progress</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">float64</span><span class="p">(</span><span class="nx">chunk</span><span class="p">.</span><span class="nx">Index</span><span class="p">)</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="nb">float64</span><span class="p">(</span><span class="nx">chunk</span><span class="p">.</span><span class="nx">Total</span><span class="p">)</span><span class="w"> </span><span class="o">*</span><span class="w"> </span><span class="mi">100</span>
+<span class="w">    </span><span class="nx">fmt</span><span class="p">.</span><span class="nx">Printf</span><span class="p">(</span><span class="s">&quot;Progress: %.2f%%\n&quot;</span><span class="p">,</span><span class="w"> </span><span class="nx">progress</span><span class="p">)</span>
+
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">})</span>
 </code></pre></div>
-<h2 id="example-usage">Example Usage<a class="headerlink" href="#example-usage" title="Permanent link">&para;</a></h2>
-<p>Create a snapshot:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class="w"> </span>/home/user/documents<span class="w"> </span>--output<span class="w"> </span>backup-20240601.snap
+<h3 id="buffered-io">Buffered I/O<a class="headerlink" href="#buffered-io" title="Permanent link">&para;</a></h3>
+<p>Streaming operations use buffered I/O for performance:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Create a buffered reader/writer</span>
+<span class="nx">bufReader</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">bufio</span><span class="p">.</span><span class="nx">NewReaderSize</span><span class="p">(</span><span class="nx">reader</span><span class="p">,</span><span class="w"> </span><span class="nx">bufferSize</span><span class="p">)</span>
+<span class="nx">bufWriter</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">bufio</span><span class="p">.</span><span class="nx">NewWriterSize</span><span class="p">(</span><span class="nx">writer</span><span class="p">,</span><span class="w"> </span><span class="nx">bufferSize</span><span class="p">)</span>
 </code></pre></div>
-<p>Compute differences:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>backup-20240601.snap<span class="w"> </span>--target<span class="w"> </span>backup-20240602.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff
+<h3 id="parallel-chunk-processing">Parallel Chunk Processing<a class="headerlink" href="#parallel-chunk-processing" title="Permanent link">&para;</a></h3>
+<p>Chunks can be processed in parallel for improved performance:</p>
+<div class="highlight"><pre><span></span><code><span class="c1">// Create a worker pool</span>
+<span class="kd">var</span><span class="w"> </span><span class="nx">wg</span><span class="w"> </span><span class="nx">sync</span><span class="p">.</span><span class="nx">WaitGroup</span>
+<span class="nx">chunkChan</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nb">make</span><span class="p">(</span><span class="kd">chan</span><span class="w"> </span><span class="nx">Chunk</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">)</span>
+
+<span class="c1">// Start worker goroutines</span>
+<span class="k">for</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span><span class="w"> </span><span class="nx">i</span><span class="w"> </span><span class="p">&lt;</span><span class="w"> </span><span class="nx">runtime</span><span class="p">.</span><span class="nx">NumCPU</span><span class="p">();</span><span class="w"> </span><span class="nx">i</span><span class="o">++</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">wg</span><span class="p">.</span><span class="nx">Add</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="w">    </span><span class="k">go</span><span class="w"> </span><span class="kd">func</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
+<span class="w">        </span><span class="k">defer</span><span class="w"> </span><span class="nx">wg</span><span class="p">.</span><span class="nx">Done</span><span class="p">()</span>
+<span class="w">        </span><span class="k">for</span><span class="w"> </span><span class="nx">chunk</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="k">range</span><span class="w"> </span><span class="nx">chunkChan</span><span class="w"> </span><span class="p">{</span>
+<span class="w">            </span><span class="nx">processChunk</span><span class="p">(</span><span class="nx">chunk</span><span class="p">)</span>
+<span class="w">        </span><span class="p">}</span>
+<span class="w">    </span><span class="p">}()</span>
+<span class="p">}</span>
+
+<span class="c1">// Feed chunks to workers</span>
+<span class="nx">processor</span><span class="p">.</span><span class="nx">ProcessStream</span><span class="p">(</span><span class="nx">reader</span><span class="p">,</span><span class="w"> </span><span class="kd">func</span><span class="p">(</span><span class="nx">chunk</span><span class="w"> </span><span class="nx">Chunk</span><span class="p">)</span><span class="w"> </span><span class="kt">error</span><span class="w"> </span><span class="p">{</span>
+<span class="w">    </span><span class="nx">chunkChan</span><span class="w"> </span><span class="o">&lt;-</span><span class="w"> </span><span class="nx">chunk</span>
+<span class="w">    </span><span class="k">return</span><span class="w"> </span><span class="kc">nil</span>
+<span class="p">})</span>
+<span class="nb">close</span><span class="p">(</span><span class="nx">chunkChan</span><span class="p">)</span>
+
+<span class="c1">// Wait for all workers to finish</span>
+<span class="nx">wg</span><span class="p">.</span><span class="nx">Wait</span><span class="p">()</span>
 </code></pre></div>
-<p>Apply a diff:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>apply<span class="w"> </span>--base<span class="w"> </span>backup-20240601.snap<span class="w"> </span>--diff<span class="w"> </span>changes.diff<span class="w"> </span>--output<span class="w"> </span>backup-20240602.snap
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>Streaming behavior can be configured through options:</p>
+<div class="highlight"><pre><span></span><code><span class="nx">options</span><span class="w"> </span><span class="o">:=</span><span class="w"> </span><span class="nx">StreamingOptions</span><span class="p">{</span>
+<span class="w">    </span><span class="nx">ChunkSize</span><span class="p">:</span><span class="w">  </span><span class="mi">5000</span><span class="p">,</span><span class="w">     </span><span class="c1">// Number of entries per chunk</span>
+<span class="w">    </span><span class="nx">BufferSize</span><span class="p">:</span><span class="w"> </span><span class="mi">128</span><span class="o">*</span><span class="mi">1024</span><span class="p">,</span><span class="w"> </span><span class="c1">// Buffer size for I/O operations</span>
+<span class="w">    </span><span class="nx">NumWorkers</span><span class="p">:</span><span class="w"> </span><span class="mi">4</span><span class="p">,</span><span class="w">        </span><span class="c1">// Number of worker goroutines</span>
+<span class="p">}</span>
 </code></pre></div>
-<p>Set an expiry policy:</p>
-<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">set</span><span class="w"> </span>--keep-hourly<span class="w"> </span><span class="m">24</span><span class="w"> </span>--keep-daily<span class="w"> </span><span class="m">7</span><span class="w"> </span>--keep-weekly<span class="w"> </span><span class="m">4</span><span class="w"> </span>--keep-monthly<span class="w"> </span><span class="m">12</span>
-</code></pre></div>
-<h2 id="known-limitations">Known Limitations<a class="headerlink" href="#known-limitations" title="Permanent link">&para;</a></h2>
+<h2 id="use-cases">Use Cases<a class="headerlink" href="#use-cases" title="Permanent link">&para;</a></h2>
+<h3 id="very-large-file-systems">Very Large File Systems<a class="headerlink" href="#very-large-file-systems" title="Permanent link">&para;</a></h3>
+<p>Streaming is essential for processing very large file systems:</p>
 <ul>
-<li>Limited support for special file types (devices, sockets, etc.)</li>
-<li>No built-in encryption for snapshots and diffs</li>
-<li>No remote storage backend integration</li>
+<li><strong>Enterprise Storage</strong>: File systems with millions of files</li>
+<li><strong>Media Archives</strong>: Large collections of media files</li>
+<li><strong>Source Code Repositories</strong>: Large monorepos with many files</li>
 </ul>
-<h2 id="future-roadmap">Future Roadmap<a class="headerlink" href="#future-roadmap" title="Permanent link">&para;</a></h2>
+<h3 id="network-transfers">Network Transfers<a class="headerlink" href="#network-transfers" title="Permanent link">&para;</a></h3>
+<p>Streaming enables efficient network transfers:</p>
 <ul>
-<li>Encryption support for secure storage</li>
-<li>Remote storage backends (S3, GCS, etc.)</li>
-<li>GUI for visualization and management</li>
-<li>Improved handling of special file types</li>
-<li>Snapshot verification and integrity checking</li>
+<li><strong>Cloud Backups</strong>: Stream data directly to cloud storage</li>
+<li><strong>Remote Synchronization</strong>: Efficiently sync changes between systems</li>
+<li><strong>Distributed Processing</strong>: Process data across multiple nodes</li>
 </ul>
-<h2 id="contributors">Contributors<a class="headerlink" href="#contributors" title="Permanent link">&para;</a></h2>
+<h3 id="resource-constrained-environments">Resource-Constrained Environments<a class="headerlink" href="#resource-constrained-environments" title="Permanent link">&para;</a></h3>
+<p>Streaming is valuable in resource-constrained environments:</p>
 <ul>
-<li>Thomas F McGeehan V (Lead Developer)</li>
+<li><strong>Embedded Systems</strong>: Devices with limited memory</li>
+<li><strong>Shared Servers</strong>: Systems where memory must be conserved</li>
+<li><strong>Container Environments</strong>: Containerized applications with memory limits</li>
 </ul>
-<h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
-<p>FlashFS is released under the MIT License.</p>
-<hr />
-<p>We welcome feedback, bug reports, and contributions! Please file issues on our GitHub repository.</p>
 
 
 
