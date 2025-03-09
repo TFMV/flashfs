@@ -12,6 +12,7 @@ FlashFS is a high-performance file system snapshot and comparison tool designed 
 ## Features
 
 - **Blazing Fast Snapshots**: Efficiently captures file system metadata with minimal overhead
+- **Streaming Directory Walker**: Process files as they're discovered for improved memory efficiency and responsiveness
 - **Incremental Snapshots**: Stores only changes between snapshots to minimize storage requirements
 - **Efficient Storage**: Uses FlatBuffers for compact binary representation and Zstd compression
 - **In-Memory Caching**: Implements LRU caching for frequently accessed snapshots
@@ -131,86 +132,35 @@ flashfs restore gcs://my-bucket-name/ --all
 
 Please see the [documentation](https://tfmv.github.io/flashfs/) for details.
 
-## Architecture
-
-```mermaid
-graph TD
-    subgraph CLI
-        A[Root Command] --> B[Snapshot Command]
-        A --> C[Diff Command]
-        A --> D[Query Command]
-        A --> E1[Expiry Command]
-        A --> CS1[Export Command]
-        A --> CS2[Restore Command]
-    end
-
-    subgraph Core Components
-        E[Walker] --> |File Metadata| F[Serializer]
-        F --> |FlatBuffers| G[Storage]
-        G --> |Compressed Data| H[(Snapshot Files)]
-    end
-
-    subgraph Storage Module
-        G --> G1[SnapshotStore]
-        G1 --> G2[Write Snapshot]
-        G1 --> G3[Read Snapshot]
-        G1 --> G4[Compute Diff]
-        G1 --> G5[Apply Diff]
-        G1 --> G6[Query Snapshot]
-        G1 --> G7[Bloom Filter]
-        G1 --> G9[Expiry Policy]
-        G2 --> |Zstd Compression| H
-        G3 --> |Cache| G8[Memory Cache]
-        G3 --> |Decompress| H
-        G9 --> |Manage Lifecycle| H
-    end
-
-    subgraph Cloud Storage Module
-        CS3[Cloud Storage] --> CS4[S3 Provider]
-        CS3 --> CS5[GCS Provider]
-        CS3 --> CS6[Upload/Download]
-        CS3 --> CS7[Compression]
-        CS6 --> |Export| H
-        H --> |Restore| CS6
-    end
-
-    subgraph Walker Module
-        E --> E2[File System Traversal]
-        E2 --> E3[Metadata Collection]
-        E3 --> E4[Hash Calculation]
-    end
-
-    subgraph Serializer Module
-        F --> F1[FlatBuffers Schema]
-        F1 --> F2[Binary Serialization]
-    end
-
-    subgraph Expiry Module
-        G9 --> EP1[Retention Policies]
-        EP1 --> EP2[Hourly/Daily/Weekly]
-        EP1 --> EP3[Monthly/Yearly]
-        G9 --> EP4[Max Age Limit]
-        G9 --> EP5[Max Snapshots Limit]
-    end
-
-    subgraph Diff Module
-        G4 --> D1[Bloom Filter Check]
-        G4 --> D2[Parallel Processing]
-        G4 --> D3[Optimized Comparison]
-        G5 --> D4[Incremental Updates]
-    end
-
-    B --> E
-    C --> G4
-    D --> G6
-    E1 --> G9
-    CS1 --> CS3
-    CS2 --> CS3
-```
-
 ## Performance Benchmarks
 
 FlashFS is designed for high performance. Below are benchmark results for key operations:
+
+### Walker Implementations
+
+FlashFS provides multiple walker implementations with different performance characteristics:
+
+| Implementation | Operations/sec | Time/op | Memory/op | Allocations/op |
+|----------------|---------------|---------|-----------|----------------|
+| StandardWalkDir (Go stdlib) | 4,286 | 261.9 µs | 63.2 KB | 757 |
+| Walk | 631 | 1.86 ms | 12.3 MB | 4,678 |
+| WalkStreamWithCallback | 579 | 2.09 ms | 13.0 MB | 4,437 |
+| WalkStream | 579 | 2.11 ms | 13.7 MB | 4,441 |
+
+Without hashing (for comparison):
+
+| Implementation | Operations/sec | Time/op | Memory/op | Allocations/op |
+|----------------|---------------|---------|-----------|----------------|
+| Walk | 1,642 | 728.7 µs | 277.1 KB | 2,077 |
+| WalkStreamWithCallback | 1,101 | 1.09 ms | 185.4 KB | 1,636 |
+| WalkStream | 1,056 | 1.11 ms | 188.1 KB | 1,641 |
+
+These benchmarks show that:
+
+- The standard library's `filepath.WalkDir` is fastest but doesn't compute hashes
+- Hashing has a significant impact on performance and memory usage
+- The streaming implementations have similar performance to the standard walker
+- Without hashing, all implementations are significantly faster and use much less memory
 
 ### Snapshot and Diff Operations
 
@@ -286,3 +236,64 @@ This benchmark is automatically skipped in CI environments and when the environm
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
+
+## Walker Module
+
+FlashFS provides multiple implementations for walking directory trees, each with different characteristics and use cases:
+
+### Standard Walker
+
+The standard walker collects all entries in memory before returning them as a slice. It's simple to use and provides good performance for small to medium-sized directories.
+
+```go
+entries, err := walker.Walk(rootDir)
+if err != nil {
+    // handle error
+}
+
+for _, entry := range entries {
+    // process entry
+}
+```
+
+### Streaming Walker
+
+The streaming walker processes entries as they're discovered, which is more memory-efficient and responsive for large directory structures. It comes in two flavors:
+
+#### Callback-based Streaming Walker
+
+```go
+err := walker.WalkStreamWithCallback(context.Background(), rootDir, walker.DefaultWalkOptions(), 
+    func(entry walker.SnapshotEntry) error {
+        // process entry
+        return nil // return an error to stop walking
+    })
+if err != nil {
+    // handle error
+}
+```
+
+#### Channel-based Streaming Walker
+
+```go
+entryChan, errChan := walker.WalkStream(context.Background(), rootDir)
+
+// Process entries as they arrive
+for entry := range entryChan {
+    // process entry
+}
+
+// Check for errors after all entries have been processed
+if err := <-errChan; err != nil {
+    // handle error
+}
+```
+
+The streaming implementations are recommended for:
+
+- Very large directory structures (millions of files)
+- Applications that need to show progress during the walk
+- Scenarios where memory efficiency is important
+- Use cases that benefit from processing entries as they're discovered
+
+For detailed documentation on the walker implementations, see [Walker Documentation](docs/walker.md).
