@@ -24,6 +24,7 @@ table DiffEntry {
   newPermissions: uint;
   oldHash: [ubyte];
   newHash: [ubyte];
+  isDir: bool;
 }
 
 table Diff {

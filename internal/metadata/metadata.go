@@ -11,12 +11,23 @@ import (
 	"github.com/tidwall/buntdb"
 )
 
+// StoreType represents the type of metadata store
+type StoreType int
+
+const (
+	// NoStore means no metadata store is used (cold storage only)
+	NoStore StoreType = iota
+	// HotStore means a BuntDB store is used for fast querying
+	HotStore
+)
+
 // Store represents a metadata store backed by BuntDB
 type Store struct {
 	db         *buntdb.DB
 	path       string
 	mutex      sync.RWMutex
 	autoCommit bool
+	storeType  StoreType
 }
 
 // FileMetadata represents metadata for a file in a snapshot
@@ -52,22 +63,37 @@ type SnapshotMetadata struct {
 	FileCount   int       `json:"fileCount"`
 	TotalSize   int64     `json:"totalSize"`
 	RootPath    string    `json:"rootPath"`
+	IsHot       bool      `json:"isHot"` // Whether this snapshot is in the hot layer
 }
 
 // Options for configuring the metadata store
 type Options struct {
 	AutoCommit bool
+	StoreType  StoreType
 }
 
 // DefaultOptions returns the default options for the metadata store
 func DefaultOptions() Options {
 	return Options{
 		AutoCommit: true,
+		StoreType:  HotStore,
 	}
 }
 
 // New creates a new metadata store
 func New(path string, options Options) (*Store, error) {
+	store := &Store{
+		path:       path,
+		autoCommit: options.AutoCommit,
+		storeType:  options.StoreType,
+	}
+
+	// If no store is requested, return early
+	if options.StoreType == NoStore {
+		return store, nil
+	}
+
+	// Otherwise, create a BuntDB store
 	db, err := buntdb.Open(path)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open metadata store: %w", err)
@@ -79,11 +105,8 @@ func New(path string, options Options) (*Store, error) {
 		return nil, fmt.Errorf("failed to create indexes: %w", err)
 	}
 
-	return &Store{
-		db:         db,
-		path:       path,
-		autoCommit: options.AutoCommit,
-	}, nil
+	store.db = db
+	return store, nil
 }
 
 // createIndexes creates the necessary indexes for efficient querying
@@ -125,11 +148,26 @@ func createIndexes(db *buntdb.DB) error {
 func (s *Store) Close() error {
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
+	if s.storeType == NoStore || s.db == nil {
+		return nil
+	}
+
 	return s.db.Close()
+}
+
+// IsHotLayerEnabled returns whether the hot layer is enabled
+func (s *Store) IsHotLayerEnabled() bool {
+	return s.storeType == HotStore && s.db != nil
 }
 
 // AddSnapshot adds a new snapshot to the metadata store
 func (s *Store) AddSnapshot(snapshot SnapshotMetadata) error {
+	if s.storeType == NoStore || s.db == nil {
+		// No-op if hot layer is disabled
+		return nil
+	}
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -152,6 +190,10 @@ func (s *Store) AddSnapshot(snapshot SnapshotMetadata) error {
 
 // GetSnapshot retrieves a snapshot from the metadata store
 func (s *Store) GetSnapshot(id string) (SnapshotMetadata, error) {
+	if s.storeType == NoStore || s.db == nil {
+		return SnapshotMetadata{}, fmt.Errorf("hot layer is disabled")
+	}
+
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -175,6 +217,10 @@ func (s *Store) GetSnapshot(id string) (SnapshotMetadata, error) {
 
 // ListSnapshots lists all snapshots in the metadata store
 func (s *Store) ListSnapshots() ([]SnapshotMetadata, error) {
+	if s.storeType == NoStore || s.db == nil {
+		return []SnapshotMetadata{}, nil
+	}
+
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -200,6 +246,10 @@ func (s *Store) ListSnapshots() ([]SnapshotMetadata, error) {
 
 // DeleteSnapshot deletes a snapshot and all its file metadata
 func (s *Store) DeleteSnapshot(id string) error {
+	if s.storeType == NoStore || s.db == nil {
+		return nil
+	}
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -231,6 +281,10 @@ func (s *Store) DeleteSnapshot(id string) error {
 
 // AddFileMetadata adds file metadata to a snapshot
 func (s *Store) AddFileMetadata(snapshotID, path string, metadata FileMetadata) error {
+	if s.storeType == NoStore || s.db == nil {
+		return nil
+	}
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -253,6 +307,10 @@ func (s *Store) AddFileMetadata(snapshotID, path string, metadata FileMetadata) 
 
 // GetFileMetadata retrieves file metadata from a snapshot
 func (s *Store) GetFileMetadata(snapshotID, path string) (FileMetadata, error) {
+	if s.storeType == NoStore || s.db == nil {
+		return FileMetadata{}, fmt.Errorf("hot layer is disabled")
+	}
+
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -276,6 +334,10 @@ func (s *Store) GetFileMetadata(snapshotID, path string) (FileMetadata, error) {
 
 // AddDiffMetadata adds diff metadata between two snapshots
 func (s *Store) AddDiffMetadata(baseSnapshotID, targetSnapshotID, path string, metadata DiffMetadata) error {
+	if s.storeType == NoStore || s.db == nil {
+		return nil
+	}
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
 
@@ -285,8 +347,7 @@ func (s *Store) AddDiffMetadata(baseSnapshotID, targetSnapshotID, path string, m
 	}
 
 	err = s.db.Update(func(tx *buntdb.Tx) error {
-		key := fmt.Sprintf("diff:%s:%s:%s", baseSnapshotID, targetSnapshotID, path)
-		_, _, err := tx.Set(key, string(data), nil)
+		_, _, err := tx.Set(fmt.Sprintf("diff:%s:%s:%s", baseSnapshotID, targetSnapshotID, path), string(data), nil)
 		return err
 	})
 
@@ -299,14 +360,17 @@ func (s *Store) AddDiffMetadata(baseSnapshotID, targetSnapshotID, path string, m
 
 // GetDiffMetadata retrieves diff metadata between two snapshots
 func (s *Store) GetDiffMetadata(baseSnapshotID, targetSnapshotID, path string) (DiffMetadata, error) {
+	if s.storeType == NoStore || s.db == nil {
+		return DiffMetadata{}, fmt.Errorf("hot layer is disabled")
+	}
+
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
 	var metadata DiffMetadata
 
 	err := s.db.View(func(tx *buntdb.Tx) error {
-		key := fmt.Sprintf("diff:%s:%s:%s", baseSnapshotID, targetSnapshotID, path)
-		data, err := tx.Get(key)
+		data, err := tx.Get(fmt.Sprintf("diff:%s:%s:%s", baseSnapshotID, targetSnapshotID, path))
 		if err != nil {
 			return err
 		}
@@ -323,6 +387,10 @@ func (s *Store) GetDiffMetadata(baseSnapshotID, targetSnapshotID, path string) (
 
 // ListDiffs lists all diffs between two snapshots
 func (s *Store) ListDiffs(baseSnapshotID, targetSnapshotID string) (map[string]DiffMetadata, error) {
+	if s.storeType == NoStore || s.db == nil {
+		return map[string]DiffMetadata{}, nil
+	}
+
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -331,12 +399,14 @@ func (s *Store) ListDiffs(baseSnapshotID, targetSnapshotID string) (map[string]D
 	err := s.db.View(func(tx *buntdb.Tx) error {
 		prefix := fmt.Sprintf("diff:%s:%s:", baseSnapshotID, targetSnapshotID)
 		return tx.AscendKeys(prefix+"*", func(key, value string) bool {
-			path := strings.TrimPrefix(key, prefix)
-			var diff DiffMetadata
-			if err := json.Unmarshal([]byte(value), &diff); err != nil {
+			var metadata DiffMetadata
+			if err := json.Unmarshal([]byte(value), &metadata); err != nil {
 				return false
 			}
-			diffs[path] = diff
+
+			// Extract the path from the key
+			path := strings.TrimPrefix(key, prefix)
+			diffs[path] = metadata
 			return true
 		})
 	})
@@ -348,8 +418,12 @@ func (s *Store) ListDiffs(baseSnapshotID, targetSnapshotID string) (map[string]D
 	return diffs, nil
 }
 
-// FindFilesByPattern finds files in a snapshot matching a pattern
+// FindFilesByPattern finds files in a snapshot by pattern
 func (s *Store) FindFilesByPattern(snapshotID, pattern string) (map[string]FileMetadata, error) {
+	if s.storeType == NoStore || s.db == nil {
+		return map[string]FileMetadata{}, nil
+	}
+
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -358,30 +432,38 @@ func (s *Store) FindFilesByPattern(snapshotID, pattern string) (map[string]FileM
 	err := s.db.View(func(tx *buntdb.Tx) error {
 		prefix := fmt.Sprintf("file:%s:", snapshotID)
 		return tx.AscendKeys(prefix+"*", func(key, value string) bool {
+			// Extract the path from the key
 			path := strings.TrimPrefix(key, prefix)
-			match, err := filepath.Match(pattern, path)
-			if err != nil || !match {
-				return true // Continue to next item
+
+			// Check if the path matches the pattern
+			matched, err := filepath.Match(pattern, path)
+			if err != nil || !matched {
+				return true
 			}
 
 			var metadata FileMetadata
 			if err := json.Unmarshal([]byte(value), &metadata); err != nil {
 				return false
 			}
+
 			files[path] = metadata
 			return true
 		})
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to find files: %w", err)
+		return nil, fmt.Errorf("failed to find files by pattern: %w", err)
 	}
 
 	return files, nil
 }
 
-// FindFilesBySize finds files in a snapshot within a size range
+// FindFilesBySize finds files in a snapshot by size range
 func (s *Store) FindFilesBySize(snapshotID string, minSize, maxSize int64) (map[string]FileMetadata, error) {
+	if s.storeType == NoStore || s.db == nil {
+		return map[string]FileMetadata{}, nil
+	}
+
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -389,24 +471,19 @@ func (s *Store) FindFilesBySize(snapshotID string, minSize, maxSize int64) (map[
 
 	err := s.db.View(func(tx *buntdb.Tx) error {
 		prefix := fmt.Sprintf("file:%s:", snapshotID)
-
-		// Use the size index to find files within the size range
-		return tx.AscendGreaterOrEqual("size", fmt.Sprintf(`{"size":%d}`, minSize), func(key, value string) bool {
-			if !strings.HasPrefix(key, prefix) {
-				return true // Continue to next item
-			}
-
+		return tx.AscendKeys(prefix+"*", func(key, value string) bool {
 			var metadata FileMetadata
 			if err := json.Unmarshal([]byte(value), &metadata); err != nil {
 				return false
 			}
 
-			if metadata.Size > maxSize {
-				return false // Stop iteration
+			// Check if the file size is within the range
+			if metadata.Size >= minSize && (maxSize == 0 || metadata.Size <= maxSize) {
+				// Extract the path from the key
+				path := strings.TrimPrefix(key, prefix)
+				files[path] = metadata
 			}
 
-			path := strings.TrimPrefix(key, prefix)
-			files[path] = metadata
 			return true
 		})
 	})
@@ -418,8 +495,12 @@ func (s *Store) FindFilesBySize(snapshotID string, minSize, maxSize int64) (map[
 	return files, nil
 }
 
-// FindFilesByModTime finds files in a snapshot modified within a time range
+// FindFilesByModTime finds files in a snapshot by modification time range
 func (s *Store) FindFilesByModTime(snapshotID string, startTime, endTime time.Time) (map[string]FileMetadata, error) {
+	if s.storeType == NoStore || s.db == nil {
+		return map[string]FileMetadata{}, nil
+	}
+
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -427,39 +508,38 @@ func (s *Store) FindFilesByModTime(snapshotID string, startTime, endTime time.Ti
 
 	err := s.db.View(func(tx *buntdb.Tx) error {
 		prefix := fmt.Sprintf("file:%s:", snapshotID)
-		startUnix := startTime.Unix()
-		endUnix := endTime.Unix()
-
-		// Use the mtime index to find files within the time range
-		return tx.AscendGreaterOrEqual("mtime", fmt.Sprintf(`{"mtime":%d}`, startUnix), func(key, value string) bool {
-			if !strings.HasPrefix(key, prefix) {
-				return true // Continue to next item
-			}
-
+		return tx.AscendKeys(prefix+"*", func(key, value string) bool {
 			var metadata FileMetadata
 			if err := json.Unmarshal([]byte(value), &metadata); err != nil {
 				return false
 			}
 
-			if metadata.ModTime > endUnix {
-				return false // Stop iteration
+			// Check if the modification time is within the range
+			modTime := time.Unix(metadata.ModTime, 0)
+			if (startTime.IsZero() || !modTime.Before(startTime)) &&
+				(endTime.IsZero() || !modTime.After(endTime)) {
+				// Extract the path from the key
+				path := strings.TrimPrefix(key, prefix)
+				files[path] = metadata
 			}
 
-			path := strings.TrimPrefix(key, prefix)
-			files[path] = metadata
 			return true
 		})
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to find files by mod time: %w", err)
+		return nil, fmt.Errorf("failed to find files by modification time: %w", err)
 	}
 
 	return files, nil
 }
 
-// FindFilesByHash finds files in a snapshot with a specific hash
+// FindFilesByHash finds files in a snapshot by hash
 func (s *Store) FindFilesByHash(snapshotID, hash string) (map[string]FileMetadata, error) {
+	if s.storeType == NoStore || s.db == nil {
+		return map[string]FileMetadata{}, nil
+	}
+
 	s.mutex.RLock()
 	defer s.mutex.RUnlock()
 
@@ -467,20 +547,19 @@ func (s *Store) FindFilesByHash(snapshotID, hash string) (map[string]FileMetadat
 
 	err := s.db.View(func(tx *buntdb.Tx) error {
 		prefix := fmt.Sprintf("file:%s:", snapshotID)
-
-		// Use the hash index to find files with the specified hash
-		return tx.AscendEqual("hash", fmt.Sprintf(`{"hash":"%s"}`, hash), func(key, value string) bool {
-			if !strings.HasPrefix(key, prefix) {
-				return true // Continue to next item
-			}
-
+		return tx.AscendKeys(prefix+"*", func(key, value string) bool {
 			var metadata FileMetadata
 			if err := json.Unmarshal([]byte(value), &metadata); err != nil {
 				return false
 			}
 
-			path := strings.TrimPrefix(key, prefix)
-			files[path] = metadata
+			// Check if the hash matches
+			if metadata.Hash == hash {
+				// Extract the path from the key
+				path := strings.TrimPrefix(key, prefix)
+				files[path] = metadata
+			}
+
 			return true
 		})
 	})
@@ -494,7 +573,12 @@ func (s *Store) FindFilesByHash(snapshotID, hash string) (map[string]FileMetadat
 
 // Shrink shrinks the database file
 func (s *Store) Shrink() error {
+	if s.storeType == NoStore || s.db == nil {
+		return nil
+	}
+
 	s.mutex.Lock()
 	defer s.mutex.Unlock()
+
 	return s.db.Shrink()
 }

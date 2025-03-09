@@ -36,6 +36,7 @@ type DiffEntry struct {
 	NewPermissions uint32
 	OldHash        string
 	NewHash        string
+	IsDir          bool // Default to false since we can't access it from the generated code
 }
 
 // builderPool is a pool of FlatBuffers builders to reduce allocations
@@ -298,6 +299,7 @@ func DeserializeDiffFB(data []byte) ([]DiffEntry, error) {
 			NewPermissions: entry.NewPermissions(),
 			OldHash:        oldHash,
 			NewHash:        newHash,
+			IsDir:          entry.IsDir(),
 		}
 	}
 

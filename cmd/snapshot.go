@@ -9,6 +9,7 @@ import (
 	"github.com/TFMV/flashfs/internal/serializer"
 	"github.com/TFMV/flashfs/internal/storage"
 	"github.com/TFMV/flashfs/internal/walker"
+	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/spf13/cobra"
 )
 
@@ -71,7 +72,8 @@ var snapshotCmd = &cobra.Command{
 		}
 
 		fmt.Println("Serializing snapshot data...")
-		fbData, err := serializer.SerializeSnapshot(entries)
+		builder := flatbuffers.NewBuilder(0)
+		fbData, err := serializer.SerializeSnapshotFB(entries, builder)
 		if err != nil {
 			return err
 		}

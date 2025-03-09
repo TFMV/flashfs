@@ -20,6 +20,8 @@ FlashFS is a high-performance file system snapshot and comparison tool designed 
 - **Enhanced Diff Generation**: Creates, stores, and applies optimized diffs between snapshots with parallel processing
 - **Snapshot Expiry Policies**: Automatically manages snapshot lifecycle with configurable retention policies
 - **Cloud Storage Integration**: Export and restore snapshots to/from S3, GCS, or compatible object storage
+- **Progress Reporting**: Real-time progress bars and statistics for long-running operations
+- **Graceful Cancellation**: All operations can be safely interrupted with Ctrl+C
 
 ## Installation
 
@@ -39,14 +41,30 @@ go build -o flashfs
 
 ### Taking a Snapshot
 
+Standard snapshot:
+
 ```bash
 flashfs snapshot --path /path/to/directory --output snapshot.snap
 ```
 
+Streaming snapshot with progress reporting (for large directories):
+
+```bash
+flashfs stream snapshot --source /path/to/large/directory --output snapshot.snap
+```
+
 ### Comparing Snapshots
+
+Standard diff:
 
 ```bash
 flashfs diff --base snapshot1.snap --target snapshot2.snap --output diff.diff
+```
+
+Streaming diff with progress reporting (for large snapshots):
+
+```bash
+flashfs stream diff --base snapshot1.snap --target snapshot2.snap --output diff.diff
 ```
 
 For detailed comparison with additional options:
@@ -63,8 +81,34 @@ flashfs apply --base snapshot1.snap --diff diff.diff --output snapshot2.snap
 
 ### Querying a Snapshot
 
+Basic query with pattern matching:
+
 ```bash
-flashfs query --snapshot snapshot.snap --path "/some/path/*" --modified-after "2023-01-01"
+flashfs query --dir ~/.flashfs --snapshot my-snapshot --pattern "*.txt"
+```
+
+Query by size range:
+
+```bash
+flashfs query --dir ~/.flashfs --snapshot my-snapshot --min-size 1MB --max-size 10MB
+```
+
+Find duplicate files across snapshots:
+
+```bash
+flashfs query find-duplicates --dir ~/.flashfs --snapshots "snap1,snap2,snap3"
+```
+
+Find files that changed between snapshots:
+
+```bash
+flashfs query find-changes --dir ~/.flashfs --old snap1 --new snap2
+```
+
+Find the largest files in a snapshot:
+
+```bash
+flashfs query find-largest --dir ~/.flashfs --snapshot my-snapshot --n 20
 ```
 
 ### Managing Snapshot Expiry Policies
