@@ -17,8 +17,8 @@ func TestFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(tmpfile.Name()) // Clean up after the test.
-	defer tmpfile.Close()
+	defer os.Remove(tmpfile.Name()) // Clean up after the test. Error intentionally ignored.
+	defer tmpfile.Close()           // Error intentionally ignored.
 
 	testData := []byte("This is some test data.")
 	if _, err := tmpfile.Write(testData); err != nil {
@@ -296,8 +296,8 @@ func TestFilesConcurrent(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer os.Remove(tmpfile.Name())
-		defer tmpfile.Close()
+		defer os.Remove(tmpfile.Name()) // Clean up after the test. Error intentionally ignored.
+		defer tmpfile.Close()           // Error intentionally ignored.
 
 		// Write random data to each file.
 		data := make([]byte, 1024)
@@ -522,8 +522,8 @@ func TestPartialFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer os.Remove(tmpfile.Name())
-	defer tmpfile.Close()
+	defer os.Remove(tmpfile.Name()) // Clean up after the test. Error intentionally ignored.
+	defer tmpfile.Close()           // Error intentionally ignored.
 
 	// Write 20MB of data to the file (larger than the default threshold)
 	// We'll use a pattern that's different at the beginning, middle, and end
@@ -829,8 +829,8 @@ func BenchmarkLargeFileHashing(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer os.Remove(tmpfile.Name())
-	defer tmpfile.Close()
+	defer os.Remove(tmpfile.Name()) // Clean up after the test. Error intentionally ignored.
+	defer tmpfile.Close()           // Error intentionally ignored.
 
 	// Write 100MB of data to the file
 	fileSize := int64(100 * 1024 * 1024) // 100MB

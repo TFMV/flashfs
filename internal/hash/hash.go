@@ -140,7 +140,7 @@ func File(path string, opts Options) Result {
 		}
 		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to open file '%s': %w", path, err)}
 	}
-	defer file.Close() // Ensure file is closed, even if errors occur later.
+	defer file.Close() // Error intentionally ignored as we can't do anything meaningful with it at this point.
 
 	hasher, err := newHasher(opts.Algorithm)
 	if err != nil {
@@ -150,11 +150,15 @@ func File(path string, opts Options) Result {
 		return Result{Algorithm: opts.Algorithm, Error: err} // No need to wrap, already informative.
 	}
 
-	bufferSize := opts.BufferSize
-	if bufferSize <= 0 {
-		bufferSize = DefaultOptions().BufferSize // Use default if invalid.
+	// Get a buffer from the pool
+	buffer, err := GetBuffer()
+	if err != nil {
+		if opts.SkipErrors {
+			return Result{Algorithm: opts.Algorithm, Error: err}
+		}
+		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to get buffer: %w", err)}
 	}
-	buffer := make([]byte, bufferSize)
+	defer PutBuffer(buffer)
 
 	_, err = io.CopyBuffer(hasher, file, buffer)
 	if err != nil {
@@ -219,46 +223,55 @@ func FilesConcurrent(paths []string, opts Options) map[string]Result {
 	if opts.Algorithm == UndefinedAlgorithm {
 		results := make(map[string]Result)
 		for _, path := range paths {
-			results[path] = Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("undefined hashing algorithm")}
+			results[path] = Result{
+				Algorithm: opts.Algorithm,
+				Error:     fmt.Errorf("undefined hashing algorithm"),
+			}
 		}
 		return results
 	}
 
-	results := make(map[string]Result)
-	resultsMu := sync.Mutex{} // Protects concurrent map access.
-
+	// Determine concurrency
 	concurrency := opts.Concurrency
 	if concurrency <= 0 {
-		concurrency = runtime.NumCPU() // Default to available CPUs.
+		concurrency = runtime.NumCPU()
 	}
 
-	sem := make(chan struct{}, concurrency) // Semaphore to limit goroutines.
+	// Create a semaphore to limit concurrency
+	sem := make(chan struct{}, concurrency)
 	var wg sync.WaitGroup
 
+	// Create a mutex to protect the results map
+	var mu sync.Mutex
+	results := make(map[string]Result)
+
+	// Process each file concurrently
 	for _, path := range paths {
 		wg.Add(1)
 		go func(p string) {
 			defer wg.Done()
 
-			sem <- struct{}{}        // Acquire a semaphore slot.
-			defer func() { <-sem }() // Release the slot when done.
+			// Acquire semaphore
+			sem <- struct{}{}
+			defer func() { <-sem }()
 
-			result := File(p, opts) // Calculate the hash.
+			// Hash the file
+			result := File(p, opts)
 
-			resultsMu.Lock()    // Lock the map for writing.
-			results[p] = result // Store the result.
-			resultsMu.Unlock()  // Unlock the map.
+			// Store the result
+			mu.Lock()
+			results[p] = result
+			mu.Unlock()
 		}(path)
 	}
 
-	wg.Wait() // Wait for all goroutines to complete.
+	// Wait for all goroutines to finish
+	wg.Wait()
 	return results
 }
 
-// Reader computes the hash of an io.Reader. This allows hashing data from
-// various sources (network connections, pipes, etc.).
+// Reader computes the hash of an io.Reader.
 func Reader(reader io.Reader, algorithm Algorithm) Result {
-	// Validate Options
 	if algorithm == UndefinedAlgorithm {
 		return Result{Algorithm: algorithm, Error: fmt.Errorf("undefined hashing algorithm")}
 	}
@@ -268,9 +281,31 @@ func Reader(reader io.Reader, algorithm Algorithm) Result {
 		return Result{Algorithm: algorithm, Error: err}
 	}
 
-	size, err := io.Copy(hasher, reader)
+	// Get a buffer from the pool
+	buffer, err := GetBuffer()
 	if err != nil {
-		return Result{Algorithm: algorithm, Error: fmt.Errorf("failed to hash data: %w", err)}
+		return Result{Algorithm: algorithm, Error: fmt.Errorf("failed to get buffer: %w", err)}
+	}
+	defer PutBuffer(buffer)
+
+	// Track the total bytes read for the Result.Size field
+	var totalBytes int64
+
+	// Copy data from reader to hasher
+	for {
+		n, err := reader.Read(buffer)
+		if n > 0 {
+			totalBytes += int64(n)
+			if _, err := hasher.Write(buffer[:n]); err != nil {
+				return Result{Algorithm: algorithm, Error: fmt.Errorf("failed to hash data: %w", err)}
+			}
+		}
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return Result{Algorithm: algorithm, Error: fmt.Errorf("failed to read data: %w", err)}
+		}
 	}
 
 	hashBytes := hasher.Sum(nil)
@@ -279,7 +314,7 @@ func Reader(reader io.Reader, algorithm Algorithm) Result {
 	return Result{
 		Hash:      hashString,
 		Algorithm: algorithm,
-		Size:      size,
+		Size:      totalBytes,
 	}
 }
 
@@ -319,7 +354,7 @@ func PartialFile(path string, opts Options) Result {
 		}
 		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to open file '%s': %w", path, err)}
 	}
-	defer file.Close()
+	defer file.Close() // Error intentionally ignored as we can't do anything meaningful with it at this point.
 
 	// Get file size
 	info, err := file.Stat()
@@ -359,8 +394,20 @@ func PartialFile(path string, opts Options) Result {
 		sampleSize = size / 10
 	}
 
-	// Allocate buffer
-	buffer := make([]byte, sampleSize)
+	// Get a buffer from the pool
+	buffer, err := GetBuffer()
+	if err != nil {
+		if opts.SkipErrors {
+			return Result{Algorithm: opts.Algorithm, Error: err}
+		}
+		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to get buffer: %w", err)}
+	}
+	defer PutBuffer(buffer)
+
+	// If buffer is smaller than sample size, adjust sample size
+	if int64(len(buffer)) < sampleSize {
+		sampleSize = int64(len(buffer))
+	}
 
 	// Hash the beginning of the file
 	_, err = file.Seek(0, 0)
@@ -371,7 +418,7 @@ func PartialFile(path string, opts Options) Result {
 		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to seek in file '%s': %w", path, err)}
 	}
 
-	n, err := io.ReadFull(file, buffer)
+	n, err := io.ReadFull(file, buffer[:sampleSize])
 	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
 		if opts.SkipErrors {
 			return Result{Algorithm: opts.Algorithm, Error: err}
@@ -380,8 +427,18 @@ func PartialFile(path string, opts Options) Result {
 	}
 
 	// Write file size and position to hasher to ensure uniqueness
-	fmt.Fprintf(hasher, "size:%d;pos:0;", size)
-	hasher.Write(buffer[:n])
+	if _, err := fmt.Fprintf(hasher, "size:%d;pos:0;", size); err != nil {
+		if opts.SkipErrors {
+			return Result{Algorithm: opts.Algorithm, Error: err}
+		}
+		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to write hash prefix: %w", err)}
+	}
+	if _, err := hasher.Write(buffer[:n]); err != nil {
+		if opts.SkipErrors {
+			return Result{Algorithm: opts.Algorithm, Error: err}
+		}
+		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to hash beginning of file: %w", err)}
+	}
 
 	// Hash the middle of the file
 	middleOffset := (size / 2) - (sampleSize / 2)
@@ -393,7 +450,7 @@ func PartialFile(path string, opts Options) Result {
 		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to seek to middle of file '%s': %w", path, err)}
 	}
 
-	n, err = io.ReadFull(file, buffer)
+	n, err = io.ReadFull(file, buffer[:sampleSize])
 	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
 		if opts.SkipErrors {
 			return Result{Algorithm: opts.Algorithm, Error: err}
@@ -402,8 +459,18 @@ func PartialFile(path string, opts Options) Result {
 	}
 
 	// Write position to hasher
-	fmt.Fprintf(hasher, "pos:%d;", middleOffset)
-	hasher.Write(buffer[:n])
+	if _, err := fmt.Fprintf(hasher, "pos:%d;", middleOffset); err != nil {
+		if opts.SkipErrors {
+			return Result{Algorithm: opts.Algorithm, Error: err}
+		}
+		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to write hash prefix: %w", err)}
+	}
+	if _, err := hasher.Write(buffer[:n]); err != nil {
+		if opts.SkipErrors {
+			return Result{Algorithm: opts.Algorithm, Error: err}
+		}
+		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to hash middle of file: %w", err)}
+	}
 
 	// Hash the end of the file
 	endOffset := size - sampleSize
@@ -418,7 +485,7 @@ func PartialFile(path string, opts Options) Result {
 		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to seek to end of file '%s': %w", path, err)}
 	}
 
-	n, err = io.ReadFull(file, buffer)
+	n, err = io.ReadFull(file, buffer[:sampleSize])
 	if err != nil && err != io.ErrUnexpectedEOF && err != io.EOF {
 		if opts.SkipErrors {
 			return Result{Algorithm: opts.Algorithm, Error: err}
@@ -427,8 +494,18 @@ func PartialFile(path string, opts Options) Result {
 	}
 
 	// Write position to hasher
-	fmt.Fprintf(hasher, "pos:%d;", endOffset)
-	hasher.Write(buffer[:n])
+	if _, err := fmt.Fprintf(hasher, "pos:%d;", endOffset); err != nil {
+		if opts.SkipErrors {
+			return Result{Algorithm: opts.Algorithm, Error: err}
+		}
+		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to write hash prefix: %w", err)}
+	}
+	if _, err := hasher.Write(buffer[:n]); err != nil {
+		if opts.SkipErrors {
+			return Result{Algorithm: opts.Algorithm, Error: err}
+		}
+		return Result{Algorithm: opts.Algorithm, Error: fmt.Errorf("failed to hash end of file: %w", err)}
+	}
 
 	// Compute final hash
 	hashBytes := hasher.Sum(nil)
