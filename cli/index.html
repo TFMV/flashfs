@@ -826,6 +826,7 @@
 <li>Computing and applying diffs between snapshots</li>
 <li>Querying snapshot contents</li>
 <li>Managing snapshot expiry policies</li>
+<li>Streaming operations for large datasets</li>
 </ul>
 <h2 id="command-structure">Command Structure<a class="headerlink" href="#command-structure" title="Permanent link">&para;</a></h2>
 <div class="highlight"><pre><span></span><code>flashfs
@@ -833,6 +834,9 @@
 ├──<span class="w"> </span>diff<span class="w"> </span>-<span class="w"> </span>Compute<span class="w"> </span>differences<span class="w"> </span>between<span class="w"> </span>snapshots
 ├──<span class="w"> </span>apply<span class="w"> </span>-<span class="w"> </span>Apply<span class="w"> </span>a<span class="w"> </span>diff<span class="w"> </span>to<span class="w"> </span>a<span class="w"> </span>snapshot
 ├──<span class="w"> </span>query<span class="w"> </span>-<span class="w"> </span>Query<span class="w"> </span>snapshot<span class="w"> </span>contents
+├──<span class="w"> </span>stream<span class="w"> </span>-<span class="w"> </span>Commands<span class="w"> </span>that<span class="w"> </span>use<span class="w"> </span>streaming<span class="w"> </span><span class="k">for</span><span class="w"> </span>large<span class="w"> </span>datasets
+│<span class="w">   </span>├──<span class="w"> </span>snapshot<span class="w"> </span>-<span class="w"> </span>Take<span class="w"> </span>a<span class="w"> </span>snapshot<span class="w"> </span>using<span class="w"> </span>streaming<span class="w"> </span><span class="k">for</span><span class="w"> </span>large<span class="w"> </span>directories
+│<span class="w">   </span>└──<span class="w"> </span>diff<span class="w"> </span>-<span class="w"> </span>Compare<span class="w"> </span>snapshots<span class="w"> </span>using<span class="w"> </span>streaming<span class="w"> </span><span class="k">for</span><span class="w"> </span>large<span class="w"> </span>datasets
 └──<span class="w"> </span>expiry<span class="w"> </span>-<span class="w"> </span>Manage<span class="w"> </span>snapshot<span class="w"> </span>expiry<span class="w"> </span>policies
 <span class="w">    </span>├──<span class="w"> </span><span class="nb">set</span><span class="w"> </span>-<span class="w"> </span>Set<span class="w"> </span>expiry<span class="w"> </span>policy
 <span class="w">    </span>├──<span class="w"> </span>apply<span class="w"> </span>-<span class="w"> </span>Apply<span class="w"> </span>expiry<span class="w"> </span>policy
@@ -871,11 +875,79 @@ flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class
 <span class="c1"># Create a snapshot without computing file hashes (faster but less accurate)</span>
 flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class="w"> </span>/var/www<span class="w"> </span>--output<span class="w"> </span>web.snap<span class="w"> </span>--no-hash
 </code></pre></div>
+<h2 id="stream-command">Stream Command<a class="headerlink" href="#stream-command" title="Permanent link">&para;</a></h2>
+<p>Commands that use streaming for large datasets with enhanced progress reporting and cancellation support.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>stream<span class="w"> </span><span class="o">[</span>command<span class="o">]</span>
+</code></pre></div>
+<h3 id="available-commands">Available Commands<a class="headerlink" href="#available-commands" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>snapshot<span class="w">   </span>Take<span class="w"> </span>a<span class="w"> </span>snapshot<span class="w"> </span>using<span class="w"> </span>streaming<span class="w"> </span><span class="k">for</span><span class="w"> </span>large<span class="w"> </span>directories
+diff<span class="w">       </span>Compare<span class="w"> </span>snapshots<span class="w"> </span>using<span class="w"> </span>streaming<span class="w"> </span><span class="k">for</span><span class="w"> </span>large<span class="w"> </span>datasets
+</code></pre></div>
+<h2 id="stream-snapshot-command">Stream Snapshot Command<a class="headerlink" href="#stream-snapshot-command" title="Permanent link">&para;</a></h2>
+<p>Take a snapshot of a directory using streaming processing with real-time progress reporting and cancellation support.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>stream<span class="w"> </span>snapshot<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<h3 id="flags_1">Flags<a class="headerlink" href="#flags_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>--source<span class="w"> </span>string<span class="w">       </span>Directory<span class="w"> </span>to<span class="w"> </span>snapshot<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--output<span class="w"> </span>string<span class="w">       </span>Output<span class="w"> </span>file<span class="w"> </span><span class="k">for</span><span class="w"> </span>snapshot<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--hash-algo<span class="w"> </span>string<span class="w">    </span>Hashing<span class="w"> </span>algorithm<span class="w"> </span><span class="o">(</span>BLAKE3,<span class="w"> </span>MD5,<span class="w"> </span>SHA1,<span class="w"> </span>SHA256<span class="o">)</span><span class="w"> </span><span class="o">(</span>default<span class="w"> </span><span class="s2">&quot;BLAKE3&quot;</span><span class="o">)</span>
+--skip-errors<span class="w">         </span>Skip<span class="w"> </span>errors<span class="w"> </span>during<span class="w"> </span>directory<span class="w"> </span>traversal
+--partial-hash<span class="w">        </span>Use<span class="w"> </span>partial<span class="w"> </span>hashing<span class="w"> </span><span class="k">for</span><span class="w"> </span>large<span class="w"> </span>files
+--workers<span class="w"> </span>int<span class="w">         </span>Number<span class="w"> </span>of<span class="w"> </span>worker<span class="w"> </span>goroutines<span class="w"> </span><span class="o">(</span>default<span class="w"> </span><span class="m">4</span><span class="o">)</span>
+</code></pre></div>
+<h3 id="implementation-details_1">Implementation Details<a class="headerlink" href="#implementation-details_1" title="Permanent link">&para;</a></h3>
+<p>The stream snapshot command is specifically designed for large directories and provides:</p>
+<ol>
+<li><strong>Two-Pass Processing</strong>: First counts files to provide accurate progress reporting, then processes them.</li>
+<li><strong>Real-Time Progress Bars</strong>: Shows detailed progress for each phase of the operation.</li>
+<li><strong>Detailed Statistics</strong>: Displays comprehensive statistics after completion, including file counts, sizes, compression ratios, and processing speeds.</li>
+<li><strong>Graceful Cancellation</strong>: Can be safely interrupted at any point with Ctrl+C.</li>
+<li><strong>Memory Efficiency</strong>: Processes files in a streaming fashion to minimize memory usage.</li>
+</ol>
+<h3 id="examples_1">Examples<a class="headerlink" href="#examples_1" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Create a snapshot of a large directory with progress reporting</span>
+flashfs<span class="w"> </span>stream<span class="w"> </span>snapshot<span class="w"> </span>--source<span class="w"> </span>/path/to/large/directory<span class="w"> </span>--output<span class="w"> </span>backup.snap
+
+<span class="c1"># Create a snapshot with partial hashing for large files</span>
+flashfs<span class="w"> </span>stream<span class="w"> </span>snapshot<span class="w"> </span>--source<span class="w"> </span>/data<span class="w"> </span>--output<span class="w"> </span>data.snap<span class="w"> </span>--partial-hash
+
+<span class="c1"># Create a snapshot with a specific hashing algorithm</span>
+flashfs<span class="w"> </span>stream<span class="w"> </span>snapshot<span class="w"> </span>--source<span class="w"> </span>/home/user<span class="w"> </span>--output<span class="w"> </span>home.snap<span class="w"> </span>--hash-algo<span class="w"> </span>SHA256
+
+<span class="c1"># Create a snapshot with more worker threads for faster processing</span>
+flashfs<span class="w"> </span>stream<span class="w"> </span>snapshot<span class="w"> </span>--source<span class="w"> </span>/var/www<span class="w"> </span>--output<span class="w"> </span>web.snap<span class="w"> </span>--workers<span class="w"> </span><span class="m">8</span>
+
+<span class="c1"># Create a snapshot that skips errors during traversal</span>
+flashfs<span class="w"> </span>stream<span class="w"> </span>snapshot<span class="w"> </span>--source<span class="w"> </span>/system<span class="w"> </span>--output<span class="w"> </span>system.snap<span class="w"> </span>--skip-errors
+</code></pre></div>
+<h2 id="stream-diff-command">Stream Diff Command<a class="headerlink" href="#stream-diff-command" title="Permanent link">&para;</a></h2>
+<p>Compare snapshots using streaming processing with real-time progress reporting and cancellation support.</p>
+<div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>stream<span class="w"> </span>diff<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
+</code></pre></div>
+<h3 id="flags_2">Flags<a class="headerlink" href="#flags_2" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code>--base<span class="w"> </span>string<span class="w">         </span>Base<span class="w"> </span>snapshot<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--target<span class="w"> </span>string<span class="w">       </span>Target<span class="w"> </span>snapshot<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+--output<span class="w"> </span>string<span class="w">       </span>Output<span class="w"> </span>file<span class="w"> </span><span class="k">for</span><span class="w"> </span>diff<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
+</code></pre></div>
+<h3 id="implementation-details_2">Implementation Details<a class="headerlink" href="#implementation-details_2" title="Permanent link">&para;</a></h3>
+<p>The stream diff command is designed for comparing large snapshots and provides:</p>
+<ol>
+<li><strong>Progress Reporting</strong>: Shows detailed progress for loading snapshots, computing differences, and writing the diff file.</li>
+<li><strong>Detailed Statistics</strong>: Displays comprehensive statistics after completion, including snapshot sizes, diff size, and diff ratio.</li>
+<li><strong>Graceful Cancellation</strong>: Can be safely interrupted at any point with Ctrl+C.</li>
+</ol>
+<h3 id="examples_2">Examples<a class="headerlink" href="#examples_2" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><span class="c1"># Compare two large snapshots with progress reporting</span>
+flashfs<span class="w"> </span>stream<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff
+
+<span class="c1"># Compare snapshots in different directories</span>
+flashfs<span class="w"> </span>stream<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>/backups/old.snap<span class="w"> </span>--target<span class="w"> </span>/backups/new.snap<span class="w"> </span>--output<span class="w"> </span>/backups/changes.diff
+</code></pre></div>
 <h2 id="diff-command">Diff Command<a class="headerlink" href="#diff-command" title="Permanent link">&para;</a></h2>
 <p>Compute differences between snapshots and store them in a structured format.</p>
 <div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>diff<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
-<h3 id="flags_1">Flags<a class="headerlink" href="#flags_1" title="Permanent link">&para;</a></h3>
+<h3 id="flags_3">Flags<a class="headerlink" href="#flags_3" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>--base,<span class="w"> </span>-b<span class="w"> </span>string<span class="w">     </span>Base<span class="w"> </span>snapshot<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
 --target,<span class="w"> </span>-t<span class="w"> </span>string<span class="w">   </span>Target<span class="w"> </span>snapshot<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
 --output,<span class="w"> </span>-o<span class="w"> </span>string<span class="w">   </span>Output<span class="w"> </span>diff<span class="w"> </span>file<span class="w"> </span><span class="o">(</span>required<span class="o">)</span>
@@ -884,15 +956,18 @@ flashfs<span class="w"> </span>snapshot<span class="w"> </span>--path<span class
 --no-hash<span class="w">             </span>Skip<span class="w"> </span><span class="nb">hash</span><span class="w"> </span>comparison<span class="w"> </span><span class="o">(</span>faster<span class="w"> </span>but<span class="w"> </span>less<span class="w"> </span>accurate<span class="o">)</span>
 --path-filter<span class="w"> </span>string<span class="w">  </span>Only<span class="w"> </span>compare<span class="w"> </span>files<span class="w"> </span>matching<span class="w"> </span>the<span class="w"> </span>specified<span class="w"> </span>path<span class="w"> </span>pattern
 </code></pre></div>
-<h3 id="examples_1">Examples<a class="headerlink" href="#examples_1" title="Permanent link">&para;</a></h3>
+<h3 id="examples_3">Examples<a class="headerlink" href="#examples_3" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Compute differences between two snapshots</span>
-flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff
+flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>diff.diff
 
-<span class="c1"># Detailed comparison with 8 parallel workers</span>
-flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff<span class="w"> </span>--detailed<span class="w"> </span>--parallel<span class="w"> </span><span class="m">8</span>
+<span class="c1"># Compute differences with detailed comparison</span>
+flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>diff.diff<span class="w"> </span>--detailed
 
-<span class="c1"># Compare only files in a specific directory</span>
-flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>changes.diff<span class="w"> </span>--path-filter<span class="w"> </span><span class="s2">&quot;/home/user/documents/*&quot;</span>
+<span class="c1"># Compute differences using 8 parallel workers</span>
+flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>diff.diff<span class="w"> </span>--parallel<span class="w"> </span><span class="m">8</span>
+
+<span class="c1"># Compute differences for a specific path only</span>
+flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--target<span class="w"> </span>snapshot2.snap<span class="w"> </span>--output<span class="w"> </span>diff.diff<span class="w"> </span>--path-filter<span class="w"> </span><span class="s2">&quot;/home/user/documents/*&quot;</span>
 </code></pre></div>
 <h3 id="diff-format">Diff Format<a class="headerlink" href="#diff-format" title="Permanent link">&para;</a></h3>
 <p>The generated diff file contains a structured representation of changes:</p>
@@ -912,12 +987,12 @@ flashfs<span class="w"> </span>diff<span class="w"> </span>--base<span class="w"
 <p>Apply a diff to a snapshot to generate a new snapshot.</p>
 <div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>apply<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
-<h3 id="flags_2">Flags<a class="headerlink" href="#flags_2" title="Permanent link">&para;</a></h3>
+<h3 id="flags_4">Flags<a class="headerlink" href="#flags_4" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>--base, -b string    Base snapshot file (required)
 --diff, -d string    Diff file to apply (required)
 --output, -o string  Output snapshot file (required)
 </code></pre></div>
-<h3 id="examples_2">Examples<a class="headerlink" href="#examples_2" title="Permanent link">&para;</a></h3>
+<h3 id="examples_4">Examples<a class="headerlink" href="#examples_4" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># Apply a diff to generate a new snapshot</span>
 flashfs<span class="w"> </span>apply<span class="w"> </span>--base<span class="w"> </span>snapshot1.snap<span class="w"> </span>--diff<span class="w"> </span>changes.diff<span class="w"> </span>--output<span class="w"> </span>snapshot2.snap
 </code></pre></div>
@@ -937,7 +1012,7 @@ flashfs<span class="w"> </span>apply<span class="w"> </span>--base<span class="w
 <p>Query snapshot contents.</p>
 <div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>query<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
-<h3 id="flags_3">Flags<a class="headerlink" href="#flags_3" title="Permanent link">&para;</a></h3>
+<h3 id="flags_5">Flags<a class="headerlink" href="#flags_5" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code>--snapshot, -s string       Snapshot file to query (required)
 --path string               Path pattern to filter by (e.g., &quot;/home/user/*&quot;)
 --modified-after string     Show files modified after this date (format: YYYY-MM-DD)
@@ -948,7 +1023,7 @@ flashfs<span class="w"> </span>apply<span class="w"> </span>--base<span class="w
 --is-file                   Show only files
 --format string             Output format: text, json, csv (default &quot;text&quot;)
 </code></pre></div>
-<h3 id="examples_3">Examples<a class="headerlink" href="#examples_3" title="Permanent link">&para;</a></h3>
+<h3 id="examples_5">Examples<a class="headerlink" href="#examples_5" title="Permanent link">&para;</a></h3>
 <div class="highlight"><pre><span></span><code><span class="c1"># List all files in a snapshot</span>
 flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span class="w"> </span>backup.snap
 
@@ -970,7 +1045,7 @@ flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span clas
 <p>Set the expiry policy for snapshots.</p>
 <div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">set</span><span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
-<h5 id="flags_4">Flags<a class="headerlink" href="#flags_4" title="Permanent link">&para;</a></h5>
+<h5 id="flags_6">Flags<a class="headerlink" href="#flags_6" title="Permanent link">&para;</a></h5>
 <div class="highlight"><pre><span></span><code>--max-snapshots int    Maximum number of snapshots to keep (0 = unlimited)
 --max-age string       Maximum age of snapshots to keep (e.g., 30d, 2w, 6m, 1y)
 --keep-hourly int      Number of hourly snapshots to keep
@@ -981,7 +1056,7 @@ flashfs<span class="w"> </span>query<span class="w"> </span>--snapshot<span clas
 --apply                Apply the policy immediately after setting it
 --dir string           Base directory for snapshots (default: current directory)
 </code></pre></div>
-<h5 id="examples_4">Examples<a class="headerlink" href="#examples_4" title="Permanent link">&para;</a></h5>
+<h5 id="examples_6">Examples<a class="headerlink" href="#examples_6" title="Permanent link">&para;</a></h5>
 <div class="highlight"><pre><span></span><code><span class="c1"># Keep only the 10 most recent snapshots</span>
 flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">set</span><span class="w"> </span>--max-snapshots<span class="w"> </span><span class="m">10</span>
 
@@ -998,10 +1073,10 @@ flashfs<span class="w"> </span>expiry<span class="w"> </span><span class="nb">se
 <p>Apply the current expiry policy to snapshots.</p>
 <div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span>apply<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
-<h5 id="flags_5">Flags<a class="headerlink" href="#flags_5" title="Permanent link">&para;</a></h5>
+<h5 id="flags_7">Flags<a class="headerlink" href="#flags_7" title="Permanent link">&para;</a></h5>
 <div class="highlight"><pre><span></span><code>--dir string  Base directory for snapshots (default: current directory)
 </code></pre></div>
-<h5 id="examples_5">Examples<a class="headerlink" href="#examples_5" title="Permanent link">&para;</a></h5>
+<h5 id="examples_7">Examples<a class="headerlink" href="#examples_7" title="Permanent link">&para;</a></h5>
 <div class="highlight"><pre><span></span><code><span class="c1"># Apply the current expiry policy</span>
 flashfs<span class="w"> </span>expiry<span class="w"> </span>apply
 
@@ -1012,17 +1087,17 @@ flashfs<span class="w"> </span>expiry<span class="w"> </span>apply<span class="w
 <p>Show the current expiry policy.</p>
 <div class="highlight"><pre><span></span><code>flashfs<span class="w"> </span>expiry<span class="w"> </span>show<span class="w"> </span><span class="o">[</span>flags<span class="o">]</span>
 </code></pre></div>
-<h5 id="flags_6">Flags<a class="headerlink" href="#flags_6" title="Permanent link">&para;</a></h5>
+<h5 id="flags_8">Flags<a class="headerlink" href="#flags_8" title="Permanent link">&para;</a></h5>
 <div class="highlight"><pre><span></span><code>--dir string  Base directory for snapshots (default: current directory)
 </code></pre></div>
-<h5 id="examples_6">Examples<a class="headerlink" href="#examples_6" title="Permanent link">&para;</a></h5>
+<h5 id="examples_8">Examples<a class="headerlink" href="#examples_8" title="Permanent link">&para;</a></h5>
 <div class="highlight"><pre><span></span><code><span class="c1"># Show the current expiry policy</span>
 flashfs<span class="w"> </span>expiry<span class="w"> </span>show
 
 <span class="c1"># Show the policy for snapshots in a specific directory</span>
 flashfs<span class="w"> </span>expiry<span class="w"> </span>show<span class="w"> </span>--dir<span class="w"> </span>/path/to/snapshots
 </code></pre></div>
-<h2 id="implementation-details_1">Implementation Details<a class="headerlink" href="#implementation-details_1" title="Permanent link">&para;</a></h2>
+<h2 id="implementation-details_3">Implementation Details<a class="headerlink" href="#implementation-details_3" title="Permanent link">&para;</a></h2>
 <h3 id="command-registration">Command Registration<a class="headerlink" href="#command-registration" title="Permanent link">&para;</a></h3>
 <p>Commands are registered in the <code>cmd</code> package:</p>
 <div class="highlight"><pre><span></span><code><span class="kd">func</span><span class="w"> </span><span class="nx">init</span><span class="p">()</span><span class="w"> </span><span class="p">{</span>
@@ -1107,7 +1182,7 @@ find<span class="w"> </span>/home<span class="w"> </span>-type<span class="w"> <
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 9, 2025 02:09:13">March 9, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="March 9, 2025 02:29:07">March 9, 2025</span>
   </span>
 
     
