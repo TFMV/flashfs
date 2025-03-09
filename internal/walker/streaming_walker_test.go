@@ -40,7 +40,11 @@ func createTestFileStructure(t testing.TB, baseDir string) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		f.WriteString("test content")
+		_, err = f.WriteString("test content")
+		if err != nil {
+			f.Close()
+			t.Fatal(err)
+		}
 		f.Close()
 	}
 }
@@ -248,7 +252,11 @@ func BenchmarkWalkWithCallback(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		f.WriteString("test content")
+		_, err = f.WriteString("test content")
+		if err != nil {
+			f.Close()
+			b.Fatal(err)
+		}
 		f.Close()
 	}
 
@@ -264,7 +272,11 @@ func BenchmarkWalkWithCallback(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			f.WriteString("test content")
+			_, err = f.WriteString("test content")
+			if err != nil {
+				f.Close()
+				b.Fatal(err)
+			}
 			f.Close()
 		}
 	}
@@ -298,7 +310,11 @@ func BenchmarkWalkStreamWithCallback(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		f.WriteString("test content")
+		_, err = f.WriteString("test content")
+		if err != nil {
+			f.Close()
+			b.Fatal(err)
+		}
 		f.Close()
 	}
 
@@ -314,7 +330,11 @@ func BenchmarkWalkStreamWithCallback(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			f.WriteString("test content")
+			_, err = f.WriteString("test content")
+			if err != nil {
+				f.Close()
+				b.Fatal(err)
+			}
 			f.Close()
 		}
 	}
@@ -349,7 +369,11 @@ func BenchmarkWalk(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		f.WriteString("test content")
+		_, err = f.WriteString("test content")
+		if err != nil {
+			f.Close()
+			b.Fatal(err)
+		}
 		f.Close()
 	}
 
@@ -365,7 +389,11 @@ func BenchmarkWalk(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			f.WriteString("test content")
+			_, err = f.WriteString("test content")
+			if err != nil {
+				f.Close()
+				b.Fatal(err)
+			}
 			f.Close()
 		}
 	}
@@ -474,7 +502,11 @@ func BenchmarkWalkNoHash(b *testing.B) {
 		if err != nil {
 			b.Fatal(err)
 		}
-		f.WriteString("test content")
+		_, err = f.WriteString("test content")
+		if err != nil {
+			f.Close()
+			b.Fatal(err)
+		}
 		f.Close()
 	}
 
@@ -490,7 +522,11 @@ func BenchmarkWalkNoHash(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			f.WriteString("test content")
+			_, err = f.WriteString("test content")
+			if err != nil {
+				f.Close()
+				b.Fatal(err)
+			}
 			f.Close()
 		}
 	}
