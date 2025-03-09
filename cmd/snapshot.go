@@ -3,6 +3,8 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"sync/atomic"
+	"time"
 
 	"github.com/TFMV/flashfs/internal/serializer"
 	"github.com/TFMV/flashfs/internal/storage"
@@ -30,7 +32,33 @@ var snapshotCmd = &cobra.Command{
 		default:
 		}
 
-		entries, err := walker.WalkWithContext(ctx, path)
+		// Use streaming walker with callback for better memory efficiency and progress reporting
+		var entries []walker.SnapshotEntry
+		var processedCount int64
+		var lastReportTime = time.Now()
+		var reportInterval = 1 * time.Second
+
+		// Set up walk options
+		options := walker.DefaultWalkOptions()
+
+		err := walker.WalkStreamWithCallback(ctx, path, options, func(entry walker.SnapshotEntry) error {
+			entries = append(entries, entry)
+
+			// Update processed count and report progress periodically
+			newCount := atomic.AddInt64(&processedCount, 1)
+
+			// Report progress every second
+			if time.Since(lastReportTime) > reportInterval {
+				fmt.Printf("\rProcessed %d files/directories...", newCount)
+				lastReportTime = time.Now()
+			}
+
+			return nil
+		})
+
+		// Final progress update
+		fmt.Printf("\rProcessed %d files/directories\n", atomic.LoadInt64(&processedCount))
+
 		if err != nil {
 			return err
 		}
@@ -42,6 +70,7 @@ var snapshotCmd = &cobra.Command{
 		default:
 		}
 
+		fmt.Println("Serializing snapshot data...")
 		fbData, err := serializer.SerializeSnapshot(entries)
 		if err != nil {
 			return err
@@ -74,6 +103,7 @@ var snapshotCmd = &cobra.Command{
 		default:
 		}
 
+		fmt.Println("Writing snapshot to disk...")
 		if err := store.WriteSnapshot(snapshotName, fbData); err != nil {
 			return err
 		}
